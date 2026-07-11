@@ -5,7 +5,17 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Drinking Buddy</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
-  <script src="https://cdn.jsdelivr.net/npm/@11labs/client@latest/dist/index.umd.js"></script>
+  <script type="module">
+    import { Conversation } from 'https://esm.sh/@11labs/client@latest';
+    window.__ELConversation = Conversation;
+  </script>
+  <script>
+    // Wait for module to load
+    window.__ELReady = new Promise(resolve => {
+      const check = () => window.__ELConversation ? resolve(window.__ELConversation) : setTimeout(check, 50);
+      check();
+    });
+  </script>
   <style>
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
     :root{--bg:#060402;--card:#0e0a06;--border:#2a1f10;--accent:#f59e0b;--text:#f0e8d8;--muted:#7a6040;--dim:#3a2d1a}
@@ -211,14 +221,13 @@
 
   async function startConversation() {
     if (!session?.elevenLabsAgentId) {
-      showError('No agent configured', 'The ElevenLabs API key may not be set up yet. Set ELEVENLABS_API_KEY in the worker secrets.');
+      showError('No agent configured', 'Session may be missing an ElevenLabs agent ID.');
       return;
     }
 
     try {
-      // ElevenLabs Conversational AI SDK
-      const { Conversation } = window.ElevenLabsClient || window['@11labs/client'] || {};
-      if (!Conversation) throw new Error('ElevenLabs SDK not loaded');
+      // Wait for esm.sh module to be ready (loaded async)
+      const Conversation = await window.__ELReady;
 
       conversation = await Conversation.startSession({
         agentId: session.elevenLabsAgentId,
@@ -227,9 +236,7 @@
           setState('listening');
         },
         onDisconnect: () => setState('idle'),
-        onError: (err) => {
-          console.error('EL error:', err);
-        },
+        onError: (err) => console.error('EL error:', err),
         onModeChange: ({ mode }) => {
           if (mode === 'speaking') setState('speaking');
           else if (mode === 'listening') setState('listening');
@@ -237,7 +244,6 @@
         onMessage: ({ message, source }) => {
           if (message) {
             setLastWords(message, source);
-            // Save to transcript
             const entry = { role: source === 'ai' ? 'assistant' : 'user', text: message };
             transcript.push(entry);
             fetch(`${API}/api/session/${sessionId}/transcript`, {
@@ -251,10 +257,7 @@
 
     } catch (err) {
       console.error('Conversation error:', err);
-      // Fallback: show connected state without actual voice (for demo)
-      document.getElementById('connecting-overlay').classList.add('hidden');
-      setState('idle');
-      document.getElementById('status-text').textContent = 'Voice unavailable — check API keys';
+      showError('Could not connect', err.message || 'Check console for details.');
     }
   }
 
