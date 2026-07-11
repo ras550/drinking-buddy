@@ -84,6 +84,8 @@
     .mic-btn{background:var(--card);border:1px solid var(--border);border-radius:50%;width:56px;height:56px;display:flex;align-items:center;justify-content:center;font-size:22px;cursor:pointer;transition:all 0.2s}
     .mic-btn.muted{border-color:#ef4444;background:rgba(239,68,68,0.1)}
     .mic-btn:hover{border-color:var(--accent)}
+    .share-btn{background:var(--card);border:1px solid var(--border);border-radius:50%;width:44px;height:44px;display:flex;align-items:center;justify-content:center;font-size:16px;cursor:pointer;transition:all 0.2s}
+    .share-btn:hover{border-color:var(--accent)}
 
     /* Permission / Error overlays */
     .overlay{position:fixed;inset:0;background:rgba(6,4,2,0.95);z-index:200;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;text-align:center;padding:24px}
@@ -156,9 +158,10 @@
 </div>
 
 <div class="bottom">
-  <button class="end-btn" onclick="endSession()">🌙 End the Night</button>
-  <div class="mic-btn" id="mic-btn" onclick="toggleMic()" title="Toggle mic">🎙️</div>
-</div>
+    <button class="end-btn" onclick="endSession()">🌙 End the Night</button>
+    <div class="mic-btn" id="mic-btn" onclick="toggleMic()" title="Toggle mic">🎙️</div>
+    <button class="share-btn" onclick="shareSession()" title="Share link">🔗</button>
+  </div>
 
 <script>
   const API = 'https://drinking-buddy-api.drinkingbuddy.workers.dev';
@@ -262,14 +265,21 @@
   }
 
   async function endSession() {
-    if (conversation) {
-      try { await conversation.endSession(); } catch {}
-    }
-    // Trigger end card generation
-    try {
-      await fetch(`${API}/api/session/${sessionId}/end`, { method: 'POST' });
-    } catch {}
+    if (conversation) { try { await conversation.endSession(); } catch {} }
+    try { await fetch(`${API}/api/session/${sessionId}/end`, { method: 'POST' }); } catch {}
     window.location.href = `/end.html?id=${sessionId}`;
+  }
+
+  function shareSession() {
+    const url = window.location.href;
+    if (navigator.share) {
+      navigator.share({ title: `Talk to ${session?.buddyName || 'my buddy'}`, url });
+    } else {
+      navigator.clipboard.writeText(url);
+      const btn = document.querySelector('.share-btn');
+      btn.textContent = '✓';
+      setTimeout(() => btn.textContent = '🔗', 2000);
+    }
   }
 
   function showError(title, msg) {

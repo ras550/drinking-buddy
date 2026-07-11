@@ -40,23 +40,19 @@
     .cta:hover{background:var(--accent2);transform:translateY(-1px);box-shadow:0 8px 28px rgba(245,158,11,0.25)}
     .cta:disabled{opacity:0.5;cursor:not-allowed;transform:none}
 
-    .link-box{display:none;margin-top:20px;background:#0d0a06;border:1px solid var(--border);border-radius:12px;padding:16px;flex-direction:column;gap:12px}
-    .link-box.show{display:flex}
-    .link-url{font-size:13px;color:var(--accent);font-family:monospace;word-break:break-all}
-    .link-actions{display:flex;gap:10px}
-    .link-btn{flex:1;padding:10px;border-radius:10px;border:none;font-family:'Inter',sans-serif;font-size:13px;font-weight:700;cursor:pointer;transition:all 0.2s}
-    .link-btn.copy{background:var(--accent);color:#0a0705}
-    .link-btn.copy:hover{background:var(--accent2)}
-    .link-btn.open{background:#1a1208;border:1px solid var(--border);color:var(--muted)}
-    .link-btn.open:hover{color:var(--text);border-color:var(--accent)}
-    .share-hint{font-size:12px;color:var(--dim);text-align:center}
-
-    .loading-overlay{display:none;position:fixed;inset:0;background:rgba(6,4,2,0.92);z-index:100;flex-direction:column;align-items:center;justify-content:center;gap:20px}
+    /* Full-screen loading — stays up until redirect */
+    .loading-overlay{display:none;position:fixed;inset:0;background:rgba(6,4,2,0.97);z-index:100;flex-direction:column;align-items:center;justify-content:center;gap:20px;text-align:center;padding:24px}
     .loading-overlay.show{display:flex}
-    .spinner{width:44px;height:44px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin 0.8s linear infinite}
+    .spinner{width:52px;height:52px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin 0.8s linear infinite}
     @keyframes spin{to{transform:rotate(360deg)}}
+    .loading-name{font-size:28px;font-weight:800;letter-spacing:-0.5px;margin-bottom:4px}
     .loading-text{font-size:16px;color:var(--muted);font-weight:500}
     .loading-sub{font-size:13px;color:var(--dim)}
+
+    /* Error state inside loading overlay */
+    .loading-error{display:none;flex-direction:column;align-items:center;gap:12px}
+    .loading-error.show{display:flex}
+    .retry-btn{background:var(--accent);color:#0a0705;border:none;border-radius:10px;padding:12px 24px;font-family:'Inter',sans-serif;font-size:14px;font-weight:700;cursor:pointer}
   </style>
 </head>
 <body>
@@ -68,7 +64,7 @@
 
 <div class="card">
   <h1>Who's your buddy tonight?</h1>
-  <p class="subtitle">Describe a friend. Anyone with the link gets to talk to them — live, real-time voice.</p>
+  <p class="subtitle">Describe a friend. You'll be talking to them in seconds.</p>
 
   <label for="name">Buddy's name</label>
   <input type="text" id="name" placeholder="e.g. Marcus" maxlength="20"/>
@@ -99,26 +95,26 @@
   </div>
 
   <button class="cta" id="cta-btn" onclick="createBuddy()">🍺 Pour the First Round</button>
-
-  <div class="link-box" id="link-box">
-    <div class="link-url" id="link-url"></div>
-    <div class="link-actions">
-      <button class="link-btn copy" onclick="copyLink()">Copy link</button>
-      <button class="link-btn open" onclick="openSession()">Open now →</button>
-    </div>
-    <div class="share-hint">Send this to anyone. They click. Your buddy answers. 🍺</div>
-  </div>
 </div>
 
+<!-- Full-screen loading — persists until navigation -->
 <div class="loading-overlay" id="loading">
-  <div class="spinner"></div>
-  <div class="loading-text" id="loading-text">Getting your buddy warmed up...</div>
-  <div class="loading-sub" id="loading-sub">Pulling up the bar tab</div>
+  <div id="loading-main" style="display:flex;flex-direction:column;align-items:center;gap:16px">
+    <div class="spinner"></div>
+    <div class="loading-name" id="loading-name"></div>
+    <div class="loading-text" id="loading-text">Getting your buddy warmed up...</div>
+    <div class="loading-sub" id="loading-sub">Pulling up the bar tab</div>
+  </div>
+  <div class="loading-error" id="loading-error">
+    <div style="font-size:40px">😕</div>
+    <div class="loading-text">Something went wrong</div>
+    <div class="loading-sub" id="error-detail">Couldn't reach the server</div>
+    <button class="retry-btn" onclick="retry()">Try again</button>
+  </div>
 </div>
 
 <script>
   const API = 'https://drinking-buddy-api.drinkingbuddy.workers.dev';
-  let shareUrl = '';
 
   function selectVoice(el) {
     document.querySelectorAll('.voice-opt').forEach(v => v.classList.remove('selected'));
@@ -128,28 +124,27 @@
   async function createBuddy() {
     const name = document.getElementById('name').value.trim();
     const personality = document.getElementById('personality').value.trim();
-    if (!name || !personality) {
-      alert('Please fill in both fields!');
-      return;
-    }
+    if (!name) { document.getElementById('name').focus(); return; }
+    if (!personality) { document.getElementById('personality').focus(); return; }
     const voiceId = document.querySelector('.voice-opt.selected').dataset.voice;
 
-    const overlay = document.getElementById('loading');
-    overlay.classList.add('show');
+    // Show loading immediately — full screen, no way to miss it
+    document.getElementById('loading').classList.add('show');
+    document.getElementById('loading-name').textContent = name;
     document.getElementById('cta-btn').disabled = true;
 
     const steps = [
-      { text: `Getting ${name} warmed up...`, sub: 'Pulling up the bar tab' },
-      { text: 'Building the personality...', sub: `Teaching them your inside jokes` },
-      { text: 'Setting up the voice...', sub: 'Almost ready to pour' },
-      { text: 'One last thing...', sub: 'Opening a cold one' },
+      { text: `Getting ${name} warmed up...`,   sub: 'Pulling up the bar tab' },
+      { text: 'Building the personality...',     sub: 'Teaching them your inside jokes' },
+      { text: 'Setting up the voice...',         sub: 'Almost ready to pour' },
+      { text: `${name} is on their way...`,      sub: 'One last cold one' },
     ];
     let i = 0;
     const interval = setInterval(() => {
       i = Math.min(i + 1, steps.length - 1);
       document.getElementById('loading-text').textContent = steps[i].text;
-      document.getElementById('loading-sub').textContent = steps[i].sub;
-    }, 1500);
+      document.getElementById('loading-sub').textContent  = steps[i].sub;
+    }, 1400);
 
     try {
       const res = await fetch(`${API}/api/session/new`, {
@@ -157,30 +152,29 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ buddyName: name, personalityDescription: personality, voiceId })
       });
-      const data = await res.json();
       clearInterval(interval);
-      overlay.classList.remove('show');
-      shareUrl = data.shareUrl;
-      document.getElementById('link-url').textContent = shareUrl;
-      document.getElementById('link-box').classList.add('show');
+      const data = await res.json();
+      if (!data.sessionId) throw new Error(data.error || 'No session ID');
+
+      // Update loading text then navigate — seamless
+      document.getElementById('loading-text').textContent = `${name} is ready. Let's go.`;
+      document.getElementById('loading-sub').textContent  = '';
+      await new Promise(r => setTimeout(r, 600)); // brief moment to read it
+      window.location.href = `/session.html?id=${data.sessionId}`;
+
     } catch (err) {
       clearInterval(interval);
-      overlay.classList.remove('show');
+      document.getElementById('loading-main').style.display = 'none';
+      document.getElementById('loading-error').classList.add('show');
+      document.getElementById('error-detail').textContent = err.message || 'Couldn\'t reach the server';
       document.getElementById('cta-btn').disabled = false;
-      alert('Something went wrong. Try again!');
     }
   }
 
-  function copyLink() {
-    navigator.clipboard.writeText(shareUrl);
-    const btn = event.target;
-    btn.textContent = '✓ Copied!';
-    btn.style.background = '#16a34a';
-    setTimeout(() => { btn.textContent = 'Copy link'; btn.style.background = ''; }, 2000);
-  }
-
-  function openSession() {
-    window.location.href = shareUrl;
+  function retry() {
+    document.getElementById('loading').classList.remove('show');
+    document.getElementById('loading-main').style.display = 'flex';
+    document.getElementById('loading-error').classList.remove('show');
   }
 </script>
 </body>
