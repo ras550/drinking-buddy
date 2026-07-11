@@ -36,7 +36,7 @@
 
     .divider{height:1px;background:var(--border);margin:4px 0 28px}
 
-    .voice-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:32px}
+    .voice-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:32px}
     .voice-opt{background:#0d0a06;border:1.5px solid var(--border);border-radius:12px;padding:14px;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;gap:10px}
     .voice-opt:hover{border-color:#4a3020}
     .voice-opt.selected{border-color:var(--accent);background:rgba(245,158,11,0.05)}
@@ -92,21 +92,17 @@
 
   <label>Pick a voice</label>
   <div class="voice-grid">
-    <div class="voice-opt selected" data-voice="JBFqnCBsd6RMkjVDRZzb" onclick="selectVoice(this)">
+    <div class="voice-opt" data-presentation="masculine" data-voice="JBFqnCBsd6RMkjVDRZzb" onclick="selectVoice(this, true)">
       <span class="voice-emoji">🧔</span>
-      <div><div class="voice-name">The Mate</div><div class="voice-desc">Warm, captivating</div></div>
+      <div><div class="voice-name">George</div><div class="voice-desc">Warm storyteller</div></div>
     </div>
-    <div class="voice-opt" data-voice="TX3LPaxmHKxFdv7VOQHJ" onclick="selectVoice(this)">
-      <span class="voice-emoji">😄</span>
-      <div><div class="voice-name">The Hype Guy</div><div class="voice-desc">Loud, energetic</div></div>
+    <div class="voice-opt" data-presentation="feminine" data-voice="EXAVITQu4vr4xnSDxMaL" onclick="selectVoice(this, true)">
+      <span class="voice-emoji">👩</span>
+      <div><div class="voice-name">Sarah</div><div class="voice-desc">Warm, confident</div></div>
     </div>
-    <div class="voice-opt" data-voice="N2lVS1w4EtoT3dr4eOWO" onclick="selectVoice(this)">
-      <span class="voice-emoji">🥃</span>
-      <div><div class="voice-name">The Sage</div><div class="voice-desc">Husky, deadpan</div></div>
-    </div>
-    <div class="voice-opt" data-voice="iP95p4xoKVk53GoZ742B" onclick="selectVoice(this)">
-      <span class="voice-emoji">💁</span>
-      <div><div class="voice-name">The Wildcard</div><div class="voice-desc">Charming, chaotic</div></div>
+    <div class="voice-opt selected" data-presentation="neutral" data-voice="SAz9YHcvj6GT2YYXdXww" onclick="selectVoice(this, true)">
+      <span class="voice-emoji">✨</span>
+      <div><div class="voice-name">River</div><div class="voice-desc">Relaxed, neutral</div></div>
     </div>
   </div>
 
@@ -132,19 +128,29 @@
 <script>
   const API = 'https://drinking-buddy-api.drinkingbuddy.workers.dev';
 
-  function selectVoice(el) {
+  let voiceManuallySelected = false;
+
+  function selectVoice(el, manual = false) {
     document.querySelectorAll('.voice-opt').forEach(v => v.classList.remove('selected'));
     el.classList.add('selected');
+    if (manual) voiceManuallySelected = true;
+  }
+
+  function inferVoice(style) {
+    if (voiceManuallySelected) return;
+    const voice = document.querySelector(`.voice-opt[data-presentation="${style}"]`);
+    if (voice) selectVoice(voice);
   }
 
   const masculineNames = new Set(['aaron','adam','alexander','andrew','anthony','ben','benjamin','brian','charles','chris','christopher','daniel','david','ethan','george','henry','jack','jacob','james','jason','john','joseph','josh','kevin','liam','lucas','marcus','mark','matt','matthew','michael','nathan','nicholas','noah','oliver','peter','rahul','robert','ryan','samuel','thomas','will','william']);
-  const feminineNames = new Set(['alexandra','alice','amanda','amelia','anna','ava','bella','charlotte','chloe','danielle','emma','emily','eva','grace','hannah','isabella','jessica','julia','laura','lily','lucy','maya','mia','natalie','olivia','priya','rachel','rebecca','sarah','sophia','sophie','zoe']);
+  const feminineNames = new Set(['alexandra','alice','amanda','amelia','anna','ava','bella','charlotte','chloe','danielle','emma','emily','eva','grace','hannah','isabella','jessica','julia','laura','lily','lucy','maya','mia','natalie','olga','olivia','priya','rachel','rebecca','sarah','sophia','sophie','zoe']);
 
   function selectAvatar(el, inferred = false) {
     document.querySelectorAll('.avatar-opt').forEach(option => option.classList.remove('selected'));
     el.classList.add('selected');
     const label = el.dataset.avatar[0].toUpperCase() + el.dataset.avatar.slice(1);
     document.getElementById('avatar-hint').textContent = `${label} selected${inferred ? ' · inferred from the name' : ''}`;
+    inferVoice(el.dataset.avatar);
   }
 
   function inferAvatar(name) {
