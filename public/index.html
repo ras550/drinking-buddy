@@ -109,8 +109,25 @@
     .signup-btn:hover { background:var(--accent2); transform:translateY(-1px); box-shadow:0 8px 24px rgba(245,158,11,0.25); }
     .signup-btn:active { transform:translateY(0); }
     .signup-count { font-size:13px; color:var(--dim); text-align:center; margin-bottom:6px; }
-    .signup-count span { color:var(--accent); font-weight:700; }
-    .success-msg { display:none; font-size:14px; color:#4ade80; font-weight:500; margin-top:8px; text-align:center; }
+    .signup-count span { color: var(--accent); font-weight: 700; }
+    .success-msg { display: none; font-size: 14px; color: #4ade80; font-weight: 500; margin-top: 8px; text-align: center; }
+
+    /* ── START CTA ───────────────────────────────────────────────────── */
+    .start-btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: 10px;
+      background: var(--accent); color: #0a0705; text-decoration: none;
+      border-radius: 16px; padding: 20px 48px;
+      font-size: 20px; font-weight: 900; letter-spacing: -0.3px;
+      transition: background 0.2s, transform 0.15s, box-shadow 0.2s;
+      box-shadow: 0 0 40px rgba(245,158,11,0.3), 0 4px 24px rgba(245,158,11,0.2);
+      margin-bottom: 14px;
+    }
+    .start-btn:hover {
+      background: var(--accent2); transform: translateY(-2px);
+      box-shadow: 0 0 60px rgba(245,158,11,0.4), 0 8px 32px rgba(245,158,11,0.3);
+    }
+    .start-btn:active { transform: translateY(0); }
+    .start-hint { font-size: 13px; color: var(--dim); margin-bottom: 0; }
 
     /* ── DIVIDER ─────────────────────────────────────────────────────── */
     .divider { height:1px; background:linear-gradient(90deg,transparent,var(--border),transparent); max-width:860px; width:100%; margin:0 auto; }
@@ -251,13 +268,18 @@
     <h1>Your friend.<br/>On the <span class="accent">other end.</span></h1>
     <p class="hero-sub">Describe a friend. Share a link. They click it and a voice that sounds and acts just like them is already talking. Real-time. Interruptable. No signup.</p>
 
-    <div id="signup">
+    <a class="start-btn" href="/setup.html">
+      🍺 Start a session
+    </a>
+    <div class="start-hint">Free · No signup · Works in your browser</div>
+
+    <div id="signup" style="margin-top:32px">
       <form class="signup-form" onsubmit="handleSignup(event)">
-        <input class="signup-input" type="email" id="email-input" placeholder="your@email.com" required />
-        <button class="signup-btn" type="submit">Get early access</button>
+        <input class="signup-input" type="email" id="email-input" placeholder="or enter email for updates" required />
+        <button class="signup-btn" type="submit">Notify me</button>
       </form>
       <div class="signup-count">Join <span class="live-count">—</span> people on the waitlist</div>
-      <div class="success-msg" id="success-msg">✓ You're on the list! We'll let you know when it's ready. 🍺</div>
+      <div class="success-msg" id="success-msg">✓ You're on the list! 🍺</div>
     </div>
   </section>
 
@@ -349,10 +371,14 @@
   <!-- BOTTOM CTA -->
   <section class="bottom-cta">
     <h2>Ready to call<br/><span style="color:var(--accent)">your buddy?</span></h2>
-    <p>Be first when we launch. No spam — just one email when the doors open.</p>
-    <form class="signup-form" onsubmit="handleSignup(event)" style="max-width:400px">
-      <input class="signup-input" type="email" placeholder="your@email.com" required />
-      <button class="signup-btn" type="submit">Join waitlist</button>
+    <p>No signup. No download. Just describe your friend and start talking.</p>
+    <a class="start-btn" href="/setup.html" style="font-size:18px;padding:18px 44px">
+      🍺 Start a session
+    </a>
+    <div class="start-hint" style="margin-top:4px">or</div>
+    <form class="signup-form" onsubmit="handleSignup(event)" style="max-width:400px;margin-top:16px">
+      <input class="signup-input" type="email" placeholder="get notified about updates" required />
+      <button class="signup-btn" type="submit">Notify me</button>
     </form>
     <div class="signup-count" style="margin-top:12px">Join <span class="live-count">—</span> people waiting 🍺</div>
   </section>
