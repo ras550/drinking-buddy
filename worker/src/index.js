@@ -18,6 +18,21 @@ export default {
       return cur + by;
     }
     async function getNum(key) { return parseInt(await env.WAITLIST.get(key) || '0'); }
+    async function getJSON(key, fallback) {
+      const raw = await env.WAITLIST.get(key);
+      if (!raw) return fallback;
+      try { return JSON.parse(raw); } catch { return fallback; }
+    }
+    async function prependToIndex(key, value, limit = 100) {
+      const items = await getJSON(key, []);
+      items.unshift(value);
+      await env.WAITLIST.put(key, JSON.stringify(items.slice(0, limit)));
+    }
+    async function countCountry(code) {
+      const countries = await getJSON('stats:countries', {});
+      countries[code] = (countries[code] || 0) + 1;
+      await env.WAITLIST.put('stats:countries', JSON.stringify(countries));
+    }
 
     // ── LANDING PAGE TRACKING ─────────────────────────────────────────────
     if (url.pathname === '/api/track' && request.method === 'POST') {
@@ -30,25 +45,24 @@ export default {
         await env.WAITLIST.put(visitorKey, '1', { expirationTtl: 86400 });
         visitors = await incr('stats:visitors');
       }
-      await incr(`stats:country:${country}`);
+      await countCountry(country);
       if (type === 'video_play') await incr('stats:video_plays');
       return json({ views, visitors });
     }
 
     if (url.pathname === '/api/stats' && request.method === 'GET') {
-      const [views, visitors, videoPlays] = await Promise.all([
-        getNum('stats:views'), getNum('stats:visitors'), getNum('stats:video_plays'),
+      const [views, visitors, videoPlays, signups, comments, countryMap] = await Promise.all([
+        getNum('stats:views'),
+        getNum('stats:visitors'),
+        getNum('stats:video_plays'),
+        getNum('stats:signups'),
+        getNum('stats:comments'),
+        getJSON('stats:countries', {}),
       ]);
-      const signups  = (await env.WAITLIST.list({ prefix: 'waitlist:' })).keys.length;
-      const comments = (await env.WAITLIST.list({ prefix: 'comment:' })).keys.length;
-      const allKeys  = await env.WAITLIST.list({ prefix: 'stats:country:' });
-      const countries = await Promise.all(
-        allKeys.keys.slice(0, 10).map(async k => ({
-          country: k.name.replace('stats:country:', ''),
-          count: await getNum(k.name),
-        }))
-      );
-      countries.sort((a, b) => b.count - a.count);
+      const countries = Object.entries(countryMap)
+        .map(([country, count]) => ({ country, count }))
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 10);
       return json({ views, visitors, signups, comments, videoPlays, countries });
     }
 
@@ -57,24 +71,23 @@ export default {
       if (!email?.includes('@')) return json({ error: 'Invalid email' }, 400);
       const key = `waitlist:${email.toLowerCase().trim()}`;
       if (!(await env.WAITLIST.get(key))) {
-        await env.WAITLIST.put(key, JSON.stringify({ email: email.toLowerCase().trim(), signedUpAt: new Date().toISOString(), ip, country }));
+        const entry = { email: email.toLowerCase().trim(), signedUpAt: new Date().toISOString(), ip, country };
+        await env.WAITLIST.put(key, JSON.stringify(entry));
+        await Promise.all([
+          incr('stats:signups'),
+          prependToIndex('index:waitlist', entry),
+        ]);
       }
-      const total = (await env.WAITLIST.list({ prefix: 'waitlist:' })).keys.length;
+      const total = await getNum('stats:signups');
       return json({ ok: true, total });
     }
 
     if (url.pathname === '/api/waitlist/count' && request.method === 'GET') {
-      const list = await env.WAITLIST.list({ prefix: 'waitlist:' });
-      return json({ count: list.keys.length });
+      return json({ count: await getNum('stats:signups') });
     }
 
     if (url.pathname === '/api/waitlist/list' && request.method === 'GET') {
-      const { keys } = await env.WAITLIST.list({ prefix: 'waitlist:' });
-      const entries = await Promise.all(
-        keys.slice(-100).map(k => env.WAITLIST.get(k.name).then(v => { try { return JSON.parse(v); } catch { return { email: k.name.replace('waitlist:', '') }; } }))
-      );
-      entries.sort((a, b) => new Date(b.signedUpAt || 0) - new Date(a.signedUpAt || 0));
-      return json({ keys: entries });
+      return json({ keys: await getJSON('index:waitlist', []) });
     }
 
     if (url.pathname === '/api/comments' && request.method === 'POST') {
@@ -83,14 +96,15 @@ export default {
       const id = `comment:${Date.now()}:${Math.random().toString(36).slice(2, 7)}`;
       const comment = { id, country, ts: new Date().toISOString(), likes: 0, name: (name?.trim() || 'Anonymous').slice(0, 40), message: message.trim().slice(0, 280) };
       await env.WAITLIST.put(id, JSON.stringify(comment));
+      await Promise.all([
+        incr('stats:comments'),
+        prependToIndex('index:comments', comment, 50),
+      ]);
       return json({ ok: true, comment });
     }
 
     if (url.pathname === '/api/comments' && request.method === 'GET') {
-      const { keys } = await env.WAITLIST.list({ prefix: 'comment:' });
-      const comments = await Promise.all(keys.slice(-50).map(k => env.WAITLIST.get(k.name).then(v => JSON.parse(v))));
-      comments.sort((a, b) => new Date(b.ts) - new Date(a.ts));
-      return json({ comments });
+      return json({ comments: await getJSON('index:comments', []) });
     }
 
     if (url.pathname.startsWith('/api/comments/') && url.pathname.endsWith('/like') && request.method === 'POST') {

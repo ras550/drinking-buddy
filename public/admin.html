@@ -254,6 +254,11 @@
   // ── helpers ───────────────────────────────────────────────────────────
   function fmt(n) { return n >= 1000 ? (n/1000).toFixed(1)+'k' : String(n||0); }
   function pct(a, b) { return b ? Math.round((a/b)*100)+'%' : '0%'; }
+  async function fetchJSON(path) {
+    const response = await fetch(`${API}${path}`);
+    if (!response.ok) throw new Error(`${path} returned ${response.status}`);
+    return response.json();
+  }
   function timeAgo(iso) {
     const s = Math.floor((Date.now() - new Date(iso)) / 1000);
     if (s < 60)   return 'just now';
@@ -269,7 +274,7 @@
 
   // ── load stats ────────────────────────────────────────────────────────
   async function loadStats() {
-    const d = await fetch(`${API}/api/stats`).then(r=>r.json());
+    const d = await fetchJSON('/api/stats');
 
     document.getElementById('d-views').textContent    = fmt(d.views);
     document.getElementById('d-visitors').textContent = fmt(d.visitors);
@@ -311,9 +316,8 @@
   // ── load signups ──────────────────────────────────────────────────────
   async function loadSignups() {
     try {
-      const { keys } = await fetch(`${API}/api/waitlist/list`).then(r=>r.json()).catch(()=>({keys:[]}));
-      // fallback: use count endpoint + show placeholder rows
-      const { count } = await fetch(`${API}/api/waitlist/count`).then(r=>r.json());
+      const { keys } = await fetchJSON('/api/waitlist/list');
+      const { count } = await fetchJSON('/api/waitlist/count');
       if (!count) { document.getElementById('signups-list').innerHTML = '<div class="empty">No signups yet</div>'; return; }
       if (!keys?.length) {
         document.getElementById('signups-list').innerHTML =
@@ -331,12 +335,15 @@
           </div>
           <div class="signup-time">${k.signedUpAt ? new Date(k.signedUpAt).toLocaleString() : ''}</div>
         </div>`).join('');
-    } catch { /* silent */ }
+    } catch (error) {
+      document.getElementById('signups-list').innerHTML = `<div class="empty">Could not load signups: ${error.message}</div>`;
+      throw error;
+    }
   }
 
   // ── load comments ─────────────────────────────────────────────────────
   async function loadComments() {
-    const { comments } = await fetch(`${API}/api/comments`).then(r=>r.json());
+    const { comments } = await fetchJSON('/api/comments');
     document.getElementById('comments-list').innerHTML = comments?.length
       ? comments.map(c => `
           <div class="admin-comment">
@@ -370,7 +377,11 @@
     try {
       await Promise.all([loadStats(), loadSignups(), loadComments()]);
       document.getElementById('last-updated').textContent = new Date().toLocaleTimeString();
-    } catch(e) { console.error(e); }
+    } catch(error) {
+      console.error(error);
+      document.getElementById('last-updated').textContent = `Error: ${error.message}`;
+      document.getElementById('last-updated').style.color = 'var(--red)';
+    }
   }
 
   setInterval(loadAll, 15000);
