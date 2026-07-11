@@ -5,16 +5,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Drinking Buddy</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
-  <script type="module">
-    import { Conversation } from 'https://esm.sh/@11labs/client@latest';
-    window.__ELConversation = Conversation;
-  </script>
   <script>
-    // Wait for module to load
-    window.__ELReady = new Promise(resolve => {
-      const check = () => window.__ELConversation ? resolve(window.__ELConversation) : setTimeout(check, 50);
-      check();
-    });
+    // Start loading immediately. This promise rejects on a real load failure;
+    // unlike the old polling loop it cannot wait forever.
+    window.__ELReady = import('https://esm.sh/@11labs/client@0.2.0?bundle')
+      .then(module => {
+        if (!module.Conversation) throw new Error('Voice client loaded incorrectly.');
+        return module.Conversation;
+      });
   </script>
   <style>
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -41,7 +39,6 @@
     .ring-2{width:270px;height:270px}
     .ring-3{width:310px;height:310px}
     .avatar{width:200px;height:200px;border-radius:50%;overflow:hidden;border:2.5px solid var(--border);transition:border-color 0.4s,box-shadow 0.4s;background:#110e08;display:flex;align-items:center;justify-content:center}
-    .avatar img{width:100%;height:100%;object-fit:cover;border-radius:50%}
 
     /* Speaking state */
     .avatar-wrap.speaking .ring-1{border-color:rgba(245,158,11,0.25);animation:pulse-ring 1.2s ease-out infinite}
@@ -50,6 +47,50 @@
     .avatar-wrap.speaking .avatar{border-color:var(--accent);box-shadow:0 0 40px rgba(245,158,11,0.3),0 0 80px rgba(245,158,11,0.1)}
     .avatar-wrap.listening .avatar{border-color:#3b82f6;box-shadow:0 0 30px rgba(59,130,246,0.2)}
     @keyframes pulse-ring{0%{transform:scale(1);opacity:1}100%{transform:scale(1.08);opacity:0}}
+
+    /* ── ANIMATED CHARACTER ─────────────────────────────────────────── */
+    .char{width:180px;height:180px;position:relative;animation:char-idle 3s ease-in-out infinite}
+    @keyframes char-idle{0%,100%{transform:translateY(0) rotate(-0.5deg)}50%{transform:translateY(-6px) rotate(0.5deg)}}
+    .avatar-wrap.speaking .char{animation:char-speaking 0.5s ease-in-out infinite}
+    @keyframes char-speaking{0%,100%{transform:translateY(0) rotate(-1deg)}50%{transform:translateY(-4px) rotate(1deg)}}
+    .avatar-wrap.listening .char{animation:char-listening 2s ease-in-out infinite}
+    @keyframes char-listening{0%,100%{transform:translateY(0) rotate(0.5deg)}50%{transform:translateY(-3px) rotate(-0.3deg)}}
+
+    /* Head */
+    .char-head{width:90px;height:90px;background:linear-gradient(145deg,#d4956a,#c17a4f);border-radius:50% 50% 45% 45%;position:absolute;top:10px;left:50%;transform:translateX(-50%);box-shadow:inset -8px -8px 20px rgba(0,0,0,0.2),inset 4px 4px 10px rgba(255,255,255,0.1)}
+    /* Hair */
+    .char-hair{width:94px;height:46px;background:linear-gradient(145deg,#3d2510,#2a1508);border-radius:50% 50% 0 0;position:absolute;top:6px;left:50%;transform:translateX(-50%)}
+    .char-hair::after{content:'';position:absolute;bottom:-6px;left:4px;right:4px;height:12px;background:#3d2510;border-radius:0 0 10px 10px}
+    /* Eyes */
+    .char-eyes{position:absolute;top:46px;left:50%;transform:translateX(-50%);width:60px;display:flex;justify-content:space-between}
+    .char-eye{width:10px;height:10px;background:#2a1508;border-radius:50%;animation:blink 4s ease-in-out infinite;position:relative}
+    .char-eye::after{content:'';position:absolute;top:2px;left:2px;width:3px;height:3px;background:rgba(255,255,255,0.6);border-radius:50%}
+    @keyframes blink{0%,45%,55%,100%{transform:scaleY(1)}50%{transform:scaleY(0.1)}}
+    .avatar-wrap.speaking .char-eye{animation:blink-talk 0.8s ease-in-out infinite}
+    @keyframes blink-talk{0%,40%,60%,100%{transform:scaleY(1)}50%{transform:scaleY(0.15)}}
+    /* Mouth */
+    .char-mouth{position:absolute;top:64px;left:50%;transform:translateX(-50%);width:28px;height:12px;border-bottom:3px solid #7a3a1a;border-radius:0 0 50% 50%;transition:all 0.2s}
+    .avatar-wrap.speaking .char-mouth{height:16px;width:24px;border-bottom:none;background:#7a2a0a;border-radius:50%;box-shadow:inset 0 4px 8px rgba(0,0,0,0.4)}
+    /* Blush */
+    .char-blush{position:absolute;top:62px;left:50%;transform:translateX(-50%);width:70px;display:flex;justify-content:space-between}
+    .char-blush-dot{width:12px;height:6px;background:rgba(220,80,60,0.25);border-radius:50%}
+    /* Neck */
+    .char-neck{width:22px;height:16px;background:#c17a4f;position:absolute;top:95px;left:50%;transform:translateX(-50%)}
+    /* Body / shirt */
+    .char-body{width:80px;height:70px;background:linear-gradient(145deg,#1a3a5c,#122840);border-radius:40% 40% 30% 30%;position:absolute;top:104px;left:50%;transform:translateX(-50%);box-shadow:inset -6px -6px 16px rgba(0,0,0,0.3)}
+    /* Collar */
+    .char-collar{position:absolute;top:4px;left:50%;transform:translateX(-50%);width:0;height:0;border-left:12px solid #f0e8d8;border-right:12px solid #f0e8d8;border-bottom:14px solid transparent}
+    /* Arms */
+    .char-arm-l{width:18px;height:55px;background:#1a3a5c;border-radius:10px;position:absolute;top:108px;left:calc(50% - 52px);transform:rotate(12deg);transform-origin:top center}
+    .char-arm-r{width:18px;height:55px;background:#1a3a5c;border-radius:10px;position:absolute;top:108px;left:calc(50% + 34px);transform:rotate(-20deg);transform-origin:top center;animation:arm-raise 3s ease-in-out infinite}
+    @keyframes arm-raise{0%,60%,100%{transform:rotate(-20deg)}30%{transform:rotate(-50deg)}}
+    .avatar-wrap.speaking .char-arm-r{animation:arm-speak 0.6s ease-in-out infinite}
+    @keyframes arm-speak{0%,100%{transform:rotate(-20deg)}50%{transform:rotate(-35deg)}}
+    /* Beer mug */
+    .char-beer{position:absolute;top:145px;left:calc(50% + 34px);font-size:24px;animation:beer-raise 3s ease-in-out infinite;transform-origin:bottom center}
+    @keyframes beer-raise{0%,60%,100%{transform:rotate(0deg) translateY(0)}30%{transform:rotate(-25deg) translateY(-8px)}}
+    .avatar-wrap.speaking .char-beer{animation:beer-speak 0.6s ease-in-out infinite}
+    @keyframes beer-speak{0%,100%{transform:rotate(0deg)}50%{transform:rotate(-15deg) translateY(-4px)}}
 
     /* Info */
     .buddy-info{text-align:center}
@@ -76,6 +117,23 @@
     /* Last words */
     .last-words{max-width:320px;text-align:center;font-size:14px;color:var(--dim);line-height:1.6;min-height:44px;font-style:italic;transition:color 0.3s}
     .last-words.speaking{color:#a07030}
+
+    /* ── ICE BREAKERS ────────────────────────────────────────────────── */
+    .icebreakers{
+      max-width:360px;width:100%;text-align:center;
+      opacity:0;transform:translateY(8px);
+      transition:opacity 0.5s ease,transform 0.5s ease;
+      pointer-events:none;
+    }
+    .icebreakers.visible{opacity:1;transform:translateY(0);pointer-events:all}
+    .ice-label{font-size:11px;color:var(--dim);text-transform:uppercase;letter-spacing:0.8px;font-weight:600;margin-bottom:12px}
+    .ice-chips{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
+    .ice-chip{
+      background:#0d0a06;border:1px solid var(--border);border-radius:50px;
+      padding:8px 16px;font-size:13px;color:var(--muted);cursor:pointer;
+      transition:all 0.2s;font-family:'Inter',sans-serif;
+    }
+    .ice-chip:hover{border-color:var(--accent);color:var(--text);background:rgba(245,158,11,0.06)}
 
     /* Bottom */
     .bottom{position:fixed;bottom:0;left:0;right:0;padding:24px;display:flex;align-items:center;justify-content:center;gap:16px}
@@ -104,8 +162,8 @@
 <!-- Connecting overlay -->
 <div class="overlay" id="connecting-overlay">
   <div class="connecting-spinner"></div>
-  <h2 id="connecting-title">Getting the bar ready...</h2>
-  <p id="connecting-sub">Your buddy is on their way</p>
+  <h2 id="connecting-title">Connecting to your buddy...</h2>
+  <p id="connecting-sub">This should only take a few seconds</p>
 </div>
 
 <!-- Mic permission overlay -->
@@ -135,7 +193,27 @@
     <div class="ring ring-2"></div>
     <div class="ring ring-3"></div>
     <div class="avatar">
-      <img id="buddy-img" src="" alt="Buddy"/>
+      <div class="char">
+        <div class="char-hair"></div>
+        <div class="char-head">
+          <div class="char-eyes">
+            <div class="char-eye"></div>
+            <div class="char-eye"></div>
+          </div>
+          <div class="char-blush">
+            <div class="char-blush-dot"></div>
+            <div class="char-blush-dot"></div>
+          </div>
+          <div class="char-mouth"></div>
+        </div>
+        <div class="char-neck"></div>
+        <div class="char-body">
+          <div class="char-collar"></div>
+        </div>
+        <div class="char-arm-l"></div>
+        <div class="char-arm-r"></div>
+        <div class="char-beer">🍺</div>
+      </div>
     </div>
   </div>
 
@@ -155,6 +233,11 @@
   </div>
 
   <div class="last-words" id="last-words">...</div>
+
+  <div class="icebreakers" id="icebreakers">
+    <div class="ice-label">Feeling shy? Try one of these 👇</div>
+    <div class="ice-chips" id="ice-chips"></div>
+  </div>
 </div>
 
 <div class="bottom">
@@ -171,6 +254,43 @@
   let muted = false;
   let seconds = 0;
   let transcript = [];
+
+  // ── Ice breakers ─────────────────────────────────────────────────────
+  const ICE_BREAKERS = [
+    "What's something good that happened to you this week?",
+    "Honestly, how are you actually doing?",
+    "Tell me something I don't know about you.",
+    "What's been on your mind lately?",
+    "Give me your hot take on something.",
+    "What are you looking forward to right now?",
+    "What's the most ridiculous thing that happened to you recently?",
+  ];
+
+  let iceTimer = null;
+
+  function showIceBreakers() {
+    const el = document.getElementById('icebreakers');
+    const chips = document.getElementById('ice-chips');
+    // Pick 3 random
+    const picks = [...ICE_BREAKERS].sort(() => Math.random() - 0.5).slice(0, 3);
+    chips.innerHTML = picks.map(p =>
+      `<button class="ice-chip" onclick="useIceBreaker(this)">${p}</button>`
+    ).join('');
+    el.classList.add('visible');
+  }
+
+  function hideIceBreakers() {
+    document.getElementById('icebreakers').classList.remove('visible');
+    clearTimeout(iceTimer);
+  }
+
+  function useIceBreaker(btn) {
+    // Visual feedback — flash the chip
+    btn.style.borderColor = 'var(--accent)';
+    btn.style.color = 'var(--accent)';
+    hideIceBreakers();
+    // The user reads it aloud — nothing more needed
+  }
 
   if (!sessionId) {
     window.location.href = '/setup.html';
@@ -193,6 +313,14 @@
     const map = { speaking: 'Speaking', listening: 'Listening...', idle: 'Connected', connecting: 'Connecting' };
     statusText.textContent = map[state] || state;
     if (state !== 'speaking') lastWords.classList.remove('speaking');
+
+    // Ice breakers: show after 4s of listening, hide when anyone speaks
+    clearTimeout(iceTimer);
+    if (state === 'listening') {
+      iceTimer = setTimeout(showIceBreakers, 4000);
+    } else {
+      hideIceBreakers();
+    }
   }
 
   function setLastWords(text, role) {
@@ -229,34 +357,44 @@
     }
 
     try {
-      // Wait for esm.sh module to be ready (loaded async)
-      const Conversation = await window.__ELReady;
+      const timeout = (ms, message) => new Promise((_, reject) =>
+        setTimeout(() => reject(new Error(message)), ms)
+      );
 
-      conversation = await Conversation.startSession({
-        agentId: session.elevenLabsAgentId,
-        onConnect: () => {
-          document.getElementById('connecting-overlay').classList.add('hidden');
-          setState('listening');
-        },
-        onDisconnect: () => setState('idle'),
-        onError: (err) => console.error('EL error:', err),
-        onModeChange: ({ mode }) => {
-          if (mode === 'speaking') setState('speaking');
-          else if (mode === 'listening') setState('listening');
-        },
-        onMessage: ({ message, source }) => {
-          if (message) {
-            setLastWords(message, source);
-            const entry = { role: source === 'ai' ? 'assistant' : 'user', text: message };
-            transcript.push(entry);
-            fetch(`${API}/api/session/${sessionId}/transcript`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(entry)
-            }).catch(() => {});
+      // SDK loading and voice connection each get a hard deadline.
+      const Conversation = await Promise.race([
+        window.__ELReady,
+        timeout(10000, 'The voice client took too long to load. Refresh and try again.')
+      ]);
+
+      conversation = await Promise.race([
+        Conversation.startSession({
+          agentId: session.elevenLabsAgentId,
+          onConnect: () => {
+            document.getElementById('connecting-overlay').classList.add('hidden');
+            setState('listening');
+          },
+          onDisconnect: () => setState('idle'),
+          onError: (err) => console.error('EL error:', err),
+          onModeChange: ({ mode }) => {
+            if (mode === 'speaking') setState('speaking');
+            else if (mode === 'listening') setState('listening');
+          },
+          onMessage: ({ message, source }) => {
+            if (message) {
+              setLastWords(message, source);
+              const entry = { role: source === 'ai' ? 'assistant' : 'user', text: message };
+              transcript.push(entry);
+              fetch(`${API}/api/session/${sessionId}/transcript`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(entry)
+              }).catch(() => {});
+            }
           }
-        }
-      });
+        }),
+        timeout(15000, 'The voice connection timed out. Please try again.')
+      ]);
 
     } catch (err) {
       console.error('Conversation error:', err);
@@ -306,8 +444,7 @@
     // Update UI
     document.title = `${session.buddyName} — Drinking Buddy`;
     document.getElementById('buddy-name').textContent = session.buddyName;
-    document.getElementById('buddy-img').src = session.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(session.buddyName)}&background=f59e0b&color=0a0705&size=200&bold=true`;
-    document.getElementById('connecting-title').textContent = `${session.buddyName} is pouring your drink...`;
+    document.getElementById('connecting-title').textContent = `Connecting to ${session.buddyName}...`;
 
     // Check mic permission
     try {

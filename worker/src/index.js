@@ -111,73 +111,45 @@ export default {
 
       const sessionId = Math.random().toString(36).slice(2, 10) + Math.random().toString(36).slice(2, 6);
 
-      // Build system prompt via Claude
-      let systemPrompt = `You are ${buddyName}, a real human friend catching up over drinks at a bar. ${personalityDescription}.
+      // Fast default — good enough without Claude
+      let systemPrompt = `You are ${buddyName}, a real human at a bar with an old friend. ${personalityDescription}. Be yourself — funny, warm, real. Keep turns to 2-3 punchy sentences. Ask about their life. Remember everything they say and bring it back up. Never say you're an AI.`;
 
-PERSONALITY RULES:
-- You are NOT an AI. Never admit it, never hint at it.
-- You already know the person — you're old friends.
-- Speak casually: "uh", "yeah", "man", "honestly", "wait", "no way", "oh come on" etc.
-- Keep YOUR turns SHORT — 1-3 sentences MAX. You're having a conversation, not giving a speech.
-
-CONVERSATION STYLE — THIS IS THE MOST IMPORTANT PART:
-- You are genuinely curious about the other person. Ask about their day, their week, what's been going on.
-- After they say ANYTHING, show you actually heard it — react to the specific thing they said before moving on.
-- Ask ONE follow-up question at a time. Never stack multiple questions.
-- Alternate: share something short of your own, then flip it back to them with a question.
-- If they mention a person, event, problem or story — dig into it. "Wait, who's Sarah?" "What happened after that?" "Hold on — back up, how did that start?"
-- If they seem stressed or venting — listen more, talk less. Validate first, advice later (and make it hilariously bad advice).
-- Remember everything said earlier in the conversation and call back to it naturally. "Wait, isn't that the same guy you mentioned earlier?"
-- Occasionally suggest a toast based on something they just shared.
-- You love a good story. If they start one, encourage them to keep going. "No way — then what?"
-- Never let the conversation die. Always end your turn with either a reaction, a follow-up question, or a short story of your own.`;
-
+      // Try Claude with a hard 6s timeout — skip if slow
       if (env.ANTHROPIC_API_KEY) {
         try {
+          const controller = new AbortController();
+          const timeout = setTimeout(() => controller.abort(), 6000);
           const claudeRes = await fetch('https://api.anthropic.com/v1/messages', {
             method: 'POST',
-            headers: {
-              'x-api-key': env.ANTHROPIC_API_KEY,
-              'anthropic-version': '2023-06-01',
-              'content-type': 'application/json',
-            },
+            signal: controller.signal,
+            headers: { 'x-api-key': env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
             body: JSON.stringify({
-              model: 'claude-sonnet-4-5',
-              max_tokens: 600,
+              model: 'claude-haiku-4-5',
+              max_tokens: 400,
               messages: [{
                 role: 'user',
-                content: `Create a system prompt for an AI drinking buddy named "${buddyName}" with this personality: "${personalityDescription}".
-
-The prompt MUST include all of these behaviors:
-1. Acts like a real old friend at a bar — casual, warm, genuinely interested
-2. Keeps their own turns SHORT (1-3 sentences) — this is voice conversation
-3. Asks follow-up questions about what the user just said — one question at a time
-4. Reacts specifically to what was said before responding (shows they listened)
-5. Digs into stories: "wait, who's that?" "then what happened?" "hold on, back up"
-6. Remembers things mentioned earlier and brings them back up
-7. Alternates between sharing something short and asking about the user
-8. Never admits to being an AI
-9. Uses casual speech patterns natural to their personality
-10. Suggests toasts based on what the user shares
-
-Output ONLY the system prompt text, nothing else.`
+                content: `Write a 3-paragraph character brief (second person, "You are...") for "${buddyName}": ${personalityDescription}\n\nParagraph 1: Who they are + worldview. Paragraph 2: How they talk, their verbal tics, humour style. Paragraph 3: One sentence — they're curious, ask one question at a time, remember everything said and weave it back in naturally, keep turns to 2-4 sentences packed with personality. No AI admission ever.`
               }]
             })
           });
-          const claudeData = await claudeRes.json();
-          if (claudeData.content?.[0]?.text) systemPrompt = claudeData.content[0].text;
-        } catch (e) { /* use default prompt */ }
+          clearTimeout(timeout);
+          const d = await claudeRes.json();
+          if (d.content?.[0]?.text) systemPrompt = d.content[0].text;
+        } catch (e) { /* timeout or error — use default */ }
       }
 
       // Create ElevenLabs agent
       let elevenLabsAgentId = null;
+      let elevenLabsError = null;
       const selectedVoiceId = voiceId || 'JBFqnCBsd6RMkjVDRZzb'; // George — Warm Storyteller
-      const workerUrl = `https://drinking-buddy-api.drinkingbuddy.workers.dev`;
 
       if (env.ELEVENLABS_API_KEY) {
         try {
+          const elController = new AbortController();
+          const elTimeout = setTimeout(() => elController.abort(), 10000);
           const elRes = await fetch('https://api.elevenlabs.io/v1/convai/agents/create', {
             method: 'POST',
+            signal: elController.signal,
             headers: { 'xi-api-key': env.ELEVENLABS_API_KEY, 'Content-Type': 'application/json' },
             body: JSON.stringify({
               name: `db-${sessionId}`,
@@ -189,13 +161,25 @@ Output ONLY the system prompt text, nothing else.`
                 },
                 tts: { voice_id: selectedVoiceId, model_id: 'eleven_turbo_v2' },
                 stt: { provider: 'elevenlabs' },
-                turn: { mode: 'silence', silence_end_duration_ms: 500 },
+                turn: { mode: 'silence', silence_end_duration_ms: 1200 },
               },
             })
           });
+          clearTimeout(elTimeout);
           const elData = await elRes.json();
+          if (!elRes.ok || !elData.agent_id) {
+            throw new Error(elData?.detail?.message || `ElevenLabs returned ${elRes.status}`);
+          }
           elevenLabsAgentId = elData.agent_id;
-        } catch (e) { /* continue without agent */ }
+        } catch (e) {
+          elevenLabsError = e?.name === 'AbortError'
+            ? 'Voice setup timed out. Please try again.'
+            : (e?.message || 'Voice setup failed. Please try again.');
+        }
+      }
+
+      if (!elevenLabsAgentId) {
+        return json({ error: elevenLabsError || 'Voice service is not configured.' }, 502);
       }
 
       // Avatar URL
@@ -243,7 +227,7 @@ Output ONLY the system prompt text, nothing else.`
       const session = raw ? JSON.parse(raw) : null;
       const systemPrompt = session?.systemPrompt || 'You are a fun drinking buddy at a bar. Keep it short and casual.';
 
-      // Call Claude
+      // Call Claude with full conversation context
       let replyText = "Ha, yeah — so what's been going on with you lately?";
       if (env.ANTHROPIC_API_KEY) {
         try {
@@ -260,8 +244,8 @@ Output ONLY the system prompt text, nothing else.`
             },
             body: JSON.stringify({
               model: 'claude-sonnet-4-5',
-              max_tokens: 120,
-              system: systemPrompt + '\n\nCRITICAL FOR THIS RESPONSE: React to what was just said. Keep it to 1-2 sentences. End with either a follow-up question or a short reaction that invites them to keep talking.',
+              max_tokens: 250,
+              system: systemPrompt,
               messages: messages.length ? messages : [{ role: 'user', content: 'Hey!' }],
             })
           });

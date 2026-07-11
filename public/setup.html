@@ -134,27 +134,30 @@
     document.getElementById('cta-btn').disabled = true;
 
     const steps = [
-      { text: `Getting ${name} warmed up...`,   sub: 'Pulling up the bar tab' },
-      { text: 'Building the personality...',     sub: 'Teaching them your inside jokes' },
-      { text: 'Setting up the voice...',         sub: 'Almost ready to pour' },
-      { text: `${name} is on their way...`,      sub: 'One last cold one' },
+      { text: `Setting up ${name}...`,         sub: 'Building the personality' },
+      { text: 'Creating the voice...',          sub: 'Almost there' },
+      { text: 'One second...',                  sub: 'Pouring the first round' },
     ];
     let i = 0;
     const interval = setInterval(() => {
       i = Math.min(i + 1, steps.length - 1);
       document.getElementById('loading-text').textContent = steps[i].text;
       document.getElementById('loading-sub').textContent  = steps[i].sub;
-    }, 1400);
+    }, 2500);
 
     try {
+      const requestController = new AbortController();
+      const requestTimeout = setTimeout(() => requestController.abort(), 20000);
       const res = await fetch(`${API}/api/session/new`, {
         method: 'POST',
+        signal: requestController.signal,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ buddyName: name, personalityDescription: personality, voiceId })
       });
+      clearTimeout(requestTimeout);
       clearInterval(interval);
       const data = await res.json();
-      if (!data.sessionId) throw new Error(data.error || 'No session ID');
+      if (!res.ok || !data.sessionId) throw new Error(data.error || 'Could not create the session');
 
       // Update loading text then navigate — seamless
       document.getElementById('loading-text').textContent = `${name} is ready. Let's go.`;
