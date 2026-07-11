@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Last Call — Drinking Buddy</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    :root{--bg:#060402;--card:#0e0a06;--border:#2a1f10;--accent:#f59e0b;--accent2:#fbbf24;--text:#f0e8d8;--muted:#7a6040;--dim:#3a2d1a}
+    body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:40px 16px 60px}
+    body::before{content:'';position:fixed;top:0;left:50%;transform:translateX(-50%);width:100%;height:400px;background:radial-gradient(ellipse 80% 50% at 50% 0%,rgba(245,158,11,0.07) 0%,transparent 70%);pointer-events:none}
+
+    .brand{display:flex;align-items:center;gap:8px;margin-bottom:28px;opacity:0.4;text-decoration:none;color:var(--text)}
+    .brand-name{font-size:14px;font-weight:700}
+    .brand-name span{color:var(--accent)}
+
+    .end-card{width:100%;max-width:480px;background:var(--card);border:1px solid var(--border);border-radius:24px;overflow:hidden;box-shadow:0 0 80px rgba(0,0,0,0.8);margin-bottom:20px;animation:fadeUp 0.5s ease-out both}
+    @keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+
+    /* Hero */
+    .hero{width:100%;aspect-ratio:16/9;position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center;background:#0a0806}
+    .hero-bg{position:absolute;inset:-10%;background-size:cover;background-position:center;filter:blur(20px) brightness(0.3) saturate(0.6);transform:scale(1.1)}
+    .hero-avatar{width:110px;height:110px;border-radius:50%;border:3px solid rgba(245,158,11,0.5);overflow:hidden;position:relative;z-index:2;box-shadow:0 0 40px rgba(245,158,11,0.25),0 8px 32px rgba(0,0,0,0.6)}
+    .hero-avatar img{width:100%;height:100%;object-fit:cover}
+    .hero-overlay{position:absolute;bottom:0;left:0;right:0;padding:18px 22px;background:linear-gradient(to top,rgba(6,4,2,0.97) 0%,transparent 100%);z-index:3}
+    .hero-label{font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:0.8px;font-weight:600;margin-bottom:2px}
+    .hero-title{font-size:16px;font-weight:700;color:var(--text)}
+
+    /* Body */
+    .card-body{padding:24px}
+    .quotes-head{font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:0.8px;font-weight:600;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+    .quotes-head::after{content:'';flex:1;height:1px;background:var(--border)}
+
+    .quote{display:flex;gap:10px;align-items:flex-start;margin-bottom:14px;padding-bottom:14px;border-bottom:1px solid #1a1208}
+    .quote:last-of-type{border-bottom:none;margin-bottom:0}
+    .q-num{font-size:10px;font-weight:700;color:var(--accent);opacity:0.5;margin-top:3px;min-width:14px}
+    .q-text{font-size:13px;color:var(--muted);line-height:1.6;font-style:italic}
+
+    .summary-wrap{margin-top:16px;padding-top:16px;border-top:1px solid #1a1208;font-size:12px;color:var(--dim);text-align:center;font-style:italic;line-height:1.5}
+
+    /* Footer */
+    .card-footer{padding:16px 22px;border-top:1px solid #1a1208;display:flex;align-items:center;justify-content:space-between}
+    .footer-brand{font-size:11px;color:var(--dim)}
+    .footer-brand span{color:var(--accent)}
+    .footer-time{font-size:10px;color:var(--dim)}
+
+    /* Actions */
+    .actions{display:flex;flex-direction:column;gap:10px;width:100%;max-width:480px;animation:fadeUp 0.5s ease-out 0.15s both}
+    .btn-primary{background:var(--accent);color:#0a0705;border:none;border-radius:14px;padding:15px;font-family:'Inter',sans-serif;font-size:15px;font-weight:800;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;justify-content:center;gap:8px;text-decoration:none}
+    .btn-primary:hover{background:var(--accent2);transform:translateY(-1px);box-shadow:0 8px 24px rgba(245,158,11,0.25)}
+    .btn-row{display:flex;gap:10px}
+    .btn-secondary{flex:1;background:transparent;border:1px solid var(--border);border-radius:14px;padding:13px;font-family:'Inter',sans-serif;font-size:13px;font-weight:600;cursor:pointer;color:var(--muted);transition:all 0.2s;text-decoration:none;text-align:center;display:flex;align-items:center;justify-content:center;gap:6px}
+    .btn-secondary:hover{border-color:#4a3020;color:var(--text)}
+
+    /* Loading */
+    .loading{display:flex;flex-direction:column;align-items:center;gap:16px;padding:60px 0}
+    .spinner{width:40px;height:40px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin 0.8s linear infinite}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    .loading-text{font-size:14px;color:var(--muted)}
+
+    /* Confetti */
+    .confetti-wrap{position:fixed;inset:0;pointer-events:none;z-index:999;overflow:hidden}
+    .cp{position:absolute;border-radius:2px;animation:fall 2.5s ease-in forwards}
+    @keyframes fall{0%{transform:translateY(-20px) rotate(0deg);opacity:1}100%{transform:translateY(100vh) rotate(720deg);opacity:0}}
+  </style>
+</head>
+<body>
+
+<div class="confetti-wrap" id="confetti"></div>
+
+<a class="brand" href="/">
+  <span>🍺</span>
+  <span class="brand-name">Drinking<span>Buddy</span></span>
+</a>
+
+<div id="loading-state">
+  <div class="loading">
+    <div class="spinner"></div>
+    <div class="loading-text">Closing out the tab...</div>
+  </div>
+</div>
+
+<div id="end-content" style="display:none;width:100%;max-width:480px;display:none;flex-direction:column;align-items:center;gap:0">
+  <div class="end-card">
+    <div class="hero">
+      <div class="hero-bg" id="hero-bg"></div>
+      <div class="hero-avatar"><img id="hero-img" src="" alt="Buddy"/></div>
+      <div class="hero-overlay">
+        <div class="hero-label">Last call</div>
+        <div class="hero-title" id="hero-title">A night with your buddy 🍺</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="quotes-head">Best of the night</div>
+      <div id="quotes-list"></div>
+      <div class="summary-wrap" id="summary"></div>
+    </div>
+    <div class="card-footer">
+      <div class="footer-brand">drinking<span>buddy</span>.app</div>
+      <div class="footer-time" id="footer-time"></div>
+    </div>
+  </div>
+
+  <div class="actions">
+    <button class="btn-primary" onclick="share()">🔗 Share this night</button>
+    <div class="btn-row">
+      <a class="btn-secondary" id="back-btn" href="#">🍺 One more round</a>
+      <a class="btn-secondary" href="/setup.html">✨ Make your own</a>
+    </div>
+  </div>
+</div>
+
+<script>
+  const API = 'https://drinking-buddy-api.drinkingbuddy.workers.dev';
+  const sessionId = new URLSearchParams(window.location.search).get('id');
+  let shareUrl = window.location.href;
+  let buddyName = 'your buddy';
+
+  // Confetti
+  const colors = ['#f59e0b','#fbbf24','#d97706','#f0e8d8','#92400e'];
+  const cw = document.getElementById('confetti');
+  for (let i = 0; i < 50; i++) {
+    const p = document.createElement('div');
+    p.className = 'cp';
+    const size = 4 + Math.random() * 8;
+    p.style.cssText = `left:${Math.random()*100}%;top:-10px;background:${colors[Math.floor(Math.random()*colors.length)]};width:${size}px;height:${size}px;border-radius:${Math.random()>.5?'50%':'2px'};animation-delay:${Math.random()*1.5}s;animation-duration:${1.5+Math.random()*1.5}s;opacity:${0.4+Math.random()*0.6}`;
+    cw.appendChild(p);
+  }
+  setTimeout(() => cw.remove(), 4000);
+
+  async function init() {
+    if (!sessionId) { window.location.href = '/setup.html'; return; }
+
+    try {
+      // Trigger end (idempotent if already ended)
+      const endRes = await fetch(`${API}/api/session/${sessionId}/end`, { method: 'POST' });
+      const endData = await endRes.json();
+
+      // Also get full session
+      const sessRes = await fetch(`${API}/api/session/${sessionId}`);
+      const session = await sessRes.json();
+
+      buddyName = session.buddyName || endData.buddyName || 'Your Buddy';
+      const avatarUrl = session.avatarUrl || endData.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(buddyName)}&background=f59e0b&color=0a0705&size=200&bold=true`;
+      const endCard = session.endCard || endData.endCard || {};
+      const quotes = endCard.quotes || ['"Cheers. That was a good one."', '"Same time next week?"', '"You\'re alright, you know that?"'];
+      const summary = endCard.summary || `A great night with ${buddyName}.`;
+
+      // Populate
+      document.title = `Last Call with ${buddyName} 🍺`;
+      document.getElementById('hero-bg').style.backgroundImage = `url('${avatarUrl}')`;
+      document.getElementById('hero-img').src = avatarUrl;
+      document.getElementById('hero-title').textContent = `A night with ${buddyName} 🍺`;
+      document.getElementById('back-btn').href = `/session.html?id=${sessionId}`;
+      document.getElementById('footer-time').textContent = new Date().toLocaleString('en-US', { weekday:'short', hour:'numeric', minute:'2-digit' });
+      document.getElementById('summary').textContent = summary;
+      document.getElementById('quotes-list').innerHTML = quotes.slice(0, 3).map((q, i) => `
+        <div class="quote">
+          <span class="q-num">${i+1}</span>
+          <div class="q-text">${q.replace(/^"|"$/g,'')}</div>
+        </div>`).join('');
+
+      // Show
+      document.getElementById('loading-state').style.display = 'none';
+      const content = document.getElementById('end-content');
+      content.style.display = 'flex';
+
+    } catch (err) {
+      document.getElementById('loading-state').innerHTML = `
+        <div class="loading">
+          <div style="font-size:40px">😕</div>
+          <div class="loading-text">Couldn't load the recap.</div>
+          <a href="/setup.html" style="color:var(--accent);font-size:14px;margin-top:8px">Start over</a>
+        </div>`;
+    }
+  }
+
+  function share() {
+    const text = `Just had a drink with my AI drinking buddy — it talked just like my friend 😂 Try it: ${window.location.href}`;
+    if (navigator.share) {
+      navigator.share({ title: `Last Call with ${buddyName}`, text, url: window.location.href });
+    } else {
+      navigator.clipboard.writeText(window.location.href);
+      const btn = event.target;
+      btn.textContent = '✓ Link copied!';
+      setTimeout(() => btn.innerHTML = '🔗 Share this night', 2000);
+    }
+  }
+
+  init();
+</script>
+</body>
+</html>

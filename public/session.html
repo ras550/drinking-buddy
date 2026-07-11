@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Drinking Buddy</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+  <script src="https://cdn.jsdelivr.net/npm/@11labs/client@latest/dist/index.umd.js"></script>
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    :root{--bg:#060402;--card:#0e0a06;--border:#2a1f10;--accent:#f59e0b;--text:#f0e8d8;--muted:#7a6040;--dim:#3a2d1a}
+    html,body{height:100%;overflow:hidden}
+    body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative}
+
+    /* Bar atmosphere */
+    .bar-bg{position:fixed;inset:0;background:radial-gradient(ellipse 120% 60% at 50% 100%,rgba(245,158,11,0.07) 0%,transparent 60%),radial-gradient(ellipse 60% 40% at 20% 80%,rgba(180,83,9,0.05) 0%,transparent 50%),radial-gradient(ellipse 60% 40% at 80% 80%,rgba(180,83,9,0.05) 0%,transparent 50%),#060402;pointer-events:none}
+
+    /* Top bar */
+    .topbar{position:fixed;top:0;left:0;right:0;padding:18px 24px;display:flex;align-items:center;justify-content:space-between;z-index:10}
+    .brand{font-size:15px;font-weight:700;opacity:0.4;display:flex;align-items:center;gap:6px}
+    .brand span{color:var(--accent)}
+    .timer{font-size:13px;color:var(--dim);font-variant-numeric:tabular-nums;font-weight:500}
+
+    /* Main */
+    .content{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;gap:28px;padding:20px}
+
+    /* Avatar */
+    .avatar-wrap{position:relative;display:flex;align-items:center;justify-content:center}
+    .ring{position:absolute;border-radius:50%;border:1.5px solid rgba(245,158,11,0);transition:all 0.4s}
+    .ring-1{width:230px;height:230px}
+    .ring-2{width:270px;height:270px}
+    .ring-3{width:310px;height:310px}
+    .avatar{width:200px;height:200px;border-radius:50%;overflow:hidden;border:2.5px solid var(--border);transition:border-color 0.4s,box-shadow 0.4s;background:#110e08;display:flex;align-items:center;justify-content:center}
+    .avatar img{width:100%;height:100%;object-fit:cover;border-radius:50%}
+
+    /* Speaking state */
+    .avatar-wrap.speaking .ring-1{border-color:rgba(245,158,11,0.25);animation:pulse-ring 1.2s ease-out infinite}
+    .avatar-wrap.speaking .ring-2{border-color:rgba(245,158,11,0.15);animation:pulse-ring 1.2s ease-out 0.2s infinite}
+    .avatar-wrap.speaking .ring-3{border-color:rgba(245,158,11,0.08);animation:pulse-ring 1.2s ease-out 0.4s infinite}
+    .avatar-wrap.speaking .avatar{border-color:var(--accent);box-shadow:0 0 40px rgba(245,158,11,0.3),0 0 80px rgba(245,158,11,0.1)}
+    .avatar-wrap.listening .avatar{border-color:#3b82f6;box-shadow:0 0 30px rgba(59,130,246,0.2)}
+    @keyframes pulse-ring{0%{transform:scale(1);opacity:1}100%{transform:scale(1.08);opacity:0}}
+
+    /* Info */
+    .buddy-info{text-align:center}
+    .buddy-name{font-size:26px;font-weight:700;letter-spacing:-0.5px;margin-bottom:6px}
+    .buddy-status{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;display:flex;align-items:center;justify-content:center;gap:6px}
+    .status-dot{width:7px;height:7px;border-radius:50%;background:var(--dim);transition:background 0.4s,box-shadow 0.4s}
+    .status-text{color:var(--dim);transition:color 0.4s}
+    .avatar-wrap.speaking~.buddy-info .status-dot{background:var(--accent);box-shadow:0 0 8px rgba(245,158,11,0.6)}
+    .avatar-wrap.speaking~.buddy-info .status-text{color:var(--accent)}
+    .avatar-wrap.listening~.buddy-info .status-dot{background:#3b82f6;box-shadow:0 0 8px rgba(59,130,246,0.5)}
+    .avatar-wrap.listening~.buddy-info .status-text{color:#3b82f6}
+
+    /* Waveform */
+    .waveform{display:flex;align-items:center;gap:3px;height:32px;opacity:0;transition:opacity 0.4s}
+    .waveform.active{opacity:1}
+    .wave-bar{width:3px;background:var(--accent);border-radius:2px;height:4px}
+    .waveform.active .wave-bar{animation:wave 0.8s ease-in-out infinite}
+    .wave-bar:nth-child(1){animation-delay:0s}.wave-bar:nth-child(2){animation-delay:.07s}.wave-bar:nth-child(3){animation-delay:.14s}
+    .wave-bar:nth-child(4){animation-delay:.21s}.wave-bar:nth-child(5){animation-delay:.1s}.wave-bar:nth-child(6){animation-delay:.17s}
+    .wave-bar:nth-child(7){animation-delay:.05s}.wave-bar:nth-child(8){animation-delay:.12s}.wave-bar:nth-child(9){animation-delay:.19s}
+    .wave-bar:nth-child(10){animation-delay:.03s}.wave-bar:nth-child(11){animation-delay:.16s}.wave-bar:nth-child(12){animation-delay:.08s}
+    @keyframes wave{0%,100%{height:4px}50%{height:22px}}
+
+    /* Last words */
+    .last-words{max-width:320px;text-align:center;font-size:14px;color:var(--dim);line-height:1.6;min-height:44px;font-style:italic;transition:color 0.3s}
+    .last-words.speaking{color:#a07030}
+
+    /* Bottom */
+    .bottom{position:fixed;bottom:0;left:0;right:0;padding:24px;display:flex;align-items:center;justify-content:center;gap:16px}
+    .end-btn{background:transparent;border:1px solid var(--border);border-radius:50px;padding:11px 22px;color:var(--dim);font-family:'Inter',sans-serif;font-size:13px;font-weight:500;cursor:pointer;transition:all 0.2s}
+    .end-btn:hover{border-color:#4a3020;color:#7a5030}
+    .mic-btn{background:var(--card);border:1px solid var(--border);border-radius:50%;width:56px;height:56px;display:flex;align-items:center;justify-content:center;font-size:22px;cursor:pointer;transition:all 0.2s}
+    .mic-btn.muted{border-color:#ef4444;background:rgba(239,68,68,0.1)}
+    .mic-btn:hover{border-color:var(--accent)}
+
+    /* Permission / Error overlays */
+    .overlay{position:fixed;inset:0;background:rgba(6,4,2,0.95);z-index:200;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;text-align:center;padding:24px}
+    .overlay.hidden{display:none}
+    .overlay h2{font-size:20px;font-weight:700}
+    .overlay p{font-size:14px;color:var(--muted);max-width:320px;line-height:1.6}
+    .overlay-btn{background:var(--accent);color:#0a0705;border:none;border-radius:12px;padding:14px 28px;font-family:'Inter',sans-serif;font-size:15px;font-weight:700;cursor:pointer}
+    .connecting-spinner{width:44px;height:44px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin 0.8s linear infinite}
+    @keyframes spin{to{transform:rotate(360deg)}}
+  </style>
+</head>
+<body>
+
+<div class="bar-bg"></div>
+
+<!-- Connecting overlay -->
+<div class="overlay" id="connecting-overlay">
+  <div class="connecting-spinner"></div>
+  <h2 id="connecting-title">Getting the bar ready...</h2>
+  <p id="connecting-sub">Your buddy is on their way</p>
+</div>
+
+<!-- Mic permission overlay -->
+<div class="overlay hidden" id="mic-overlay">
+  <div style="font-size:48px">🎙️</div>
+  <h2>Allow microphone access</h2>
+  <p>Drinking Buddy needs your mic to work. Click below and allow access when your browser asks.</p>
+  <button class="overlay-btn" onclick="requestMic()">Allow microphone</button>
+</div>
+
+<!-- Error overlay -->
+<div class="overlay hidden" id="error-overlay">
+  <div style="font-size:48px">😕</div>
+  <h2 id="error-title">Something went wrong</h2>
+  <p id="error-msg">Couldn't connect to your buddy.</p>
+  <button class="overlay-btn" onclick="window.location.href='/setup.html'">Try again</button>
+</div>
+
+<div class="topbar">
+  <div class="brand">🍺 Drinking<span>Buddy</span></div>
+  <div class="timer" id="timer">0:00</div>
+</div>
+
+<div class="content">
+  <div class="avatar-wrap" id="avatar-wrap">
+    <div class="ring ring-1"></div>
+    <div class="ring ring-2"></div>
+    <div class="ring ring-3"></div>
+    <div class="avatar">
+      <img id="buddy-img" src="" alt="Buddy"/>
+    </div>
+  </div>
+
+  <div class="buddy-info">
+    <div class="buddy-name" id="buddy-name">—</div>
+    <div class="buddy-status">
+      <div class="status-dot"></div>
+      <span class="status-text" id="status-text">Connecting</span>
+    </div>
+  </div>
+
+  <div class="waveform" id="waveform">
+    <div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div>
+    <div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div>
+    <div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div>
+    <div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div>
+  </div>
+
+  <div class="last-words" id="last-words">...</div>
+</div>
+
+<div class="bottom">
+  <button class="end-btn" onclick="endSession()">🌙 End the Night</button>
+  <div class="mic-btn" id="mic-btn" onclick="toggleMic()" title="Toggle mic">🎙️</div>
+</div>
+
+<script>
+  const API = 'https://drinking-buddy-api.drinkingbuddy.workers.dev';
+  const sessionId = new URLSearchParams(window.location.search).get('id');
+  let session = null;
+  let conversation = null;
+  let muted = false;
+  let seconds = 0;
+  let transcript = [];
+
+  if (!sessionId) {
+    window.location.href = '/setup.html';
+  }
+
+  // Timer
+  setInterval(() => {
+    seconds++;
+    const m = Math.floor(seconds / 60), s = seconds % 60;
+    document.getElementById('timer').textContent = `${m}:${s.toString().padStart(2,'0')}`;
+  }, 1000);
+
+  function setState(state) {
+    const wrap = document.getElementById('avatar-wrap');
+    const waveform = document.getElementById('waveform');
+    const statusText = document.getElementById('status-text');
+    const lastWords = document.getElementById('last-words');
+    wrap.className = 'avatar-wrap ' + state;
+    waveform.className = 'waveform ' + (state === 'speaking' ? 'active' : '');
+    const map = { speaking: 'Speaking', listening: 'Listening...', idle: 'Connected', connecting: 'Connecting' };
+    statusText.textContent = map[state] || state;
+    if (state !== 'speaking') lastWords.classList.remove('speaking');
+  }
+
+  function setLastWords(text, role) {
+    const el = document.getElementById('last-words');
+    el.textContent = role === 'agent' ? `"${text}"` : '';
+    if (role === 'agent') el.classList.add('speaking');
+    else el.classList.remove('speaking');
+  }
+
+  async function requestMic() {
+    try {
+      await navigator.mediaDevices.getUserMedia({ audio: true });
+      document.getElementById('mic-overlay').classList.add('hidden');
+      startConversation();
+    } catch {
+      alert('Mic access denied. Please allow microphone and reload.');
+    }
+  }
+
+  function toggleMic() {
+    muted = !muted;
+    const btn = document.getElementById('mic-btn');
+    btn.textContent = muted ? '🔇' : '🎙️';
+    btn.classList.toggle('muted', muted);
+    if (conversation) {
+      try { conversation.setVolume({ volume: muted ? 0 : 1 }); } catch {}
+    }
+  }
+
+  async function startConversation() {
+    if (!session?.elevenLabsAgentId) {
+      showError('No agent configured', 'The ElevenLabs API key may not be set up yet. Set ELEVENLABS_API_KEY in the worker secrets.');
+      return;
+    }
+
+    try {
+      // ElevenLabs Conversational AI SDK
+      const { Conversation } = window.ElevenLabsClient || window['@11labs/client'] || {};
+      if (!Conversation) throw new Error('ElevenLabs SDK not loaded');
+
+      conversation = await Conversation.startSession({
+        agentId: session.elevenLabsAgentId,
+        onConnect: () => {
+          document.getElementById('connecting-overlay').classList.add('hidden');
+          setState('listening');
+        },
+        onDisconnect: () => setState('idle'),
+        onError: (err) => {
+          console.error('EL error:', err);
+        },
+        onModeChange: ({ mode }) => {
+          if (mode === 'speaking') setState('speaking');
+          else if (mode === 'listening') setState('listening');
+        },
+        onMessage: ({ message, source }) => {
+          if (message) {
+            setLastWords(message, source);
+            // Save to transcript
+            const entry = { role: source === 'ai' ? 'assistant' : 'user', text: message };
+            transcript.push(entry);
+            fetch(`${API}/api/session/${sessionId}/transcript`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(entry)
+            }).catch(() => {});
+          }
+        }
+      });
+
+    } catch (err) {
+      console.error('Conversation error:', err);
+      // Fallback: show connected state without actual voice (for demo)
+      document.getElementById('connecting-overlay').classList.add('hidden');
+      setState('idle');
+      document.getElementById('status-text').textContent = 'Voice unavailable — check API keys';
+    }
+  }
+
+  async function endSession() {
+    if (conversation) {
+      try { await conversation.endSession(); } catch {}
+    }
+    // Trigger end card generation
+    try {
+      await fetch(`${API}/api/session/${sessionId}/end`, { method: 'POST' });
+    } catch {}
+    window.location.href = `/end.html?id=${sessionId}`;
+  }
+
+  function showError(title, msg) {
+    document.getElementById('connecting-overlay').classList.add('hidden');
+    document.getElementById('error-title').textContent = title;
+    document.getElementById('error-msg').textContent = msg;
+    document.getElementById('error-overlay').classList.remove('hidden');
+  }
+
+  // Init
+  async function init() {
+    if (!sessionId) return;
+
+    // Load session
+    try {
+      const res = await fetch(`${API}/api/session/${sessionId}`);
+      if (!res.ok) throw new Error('Not found');
+      session = await res.json();
+    } catch {
+      showError('Session not found', 'This link may be expired or invalid.');
+      return;
+    }
+
+    // Update UI
+    document.title = `${session.buddyName} — Drinking Buddy`;
+    document.getElementById('buddy-name').textContent = session.buddyName;
+    document.getElementById('buddy-img').src = session.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(session.buddyName)}&background=f59e0b&color=0a0705&size=200&bold=true`;
+    document.getElementById('connecting-title').textContent = `${session.buddyName} is pouring your drink...`;
+
+    // Check mic permission
+    try {
+      const perm = await navigator.permissions.query({ name: 'microphone' });
+      if (perm.state === 'denied') {
+        document.getElementById('connecting-overlay').classList.add('hidden');
+        document.getElementById('mic-overlay').classList.remove('hidden');
+        return;
+      }
+      if (perm.state === 'prompt') {
+        document.getElementById('connecting-overlay').classList.add('hidden');
+        document.getElementById('mic-overlay').classList.remove('hidden');
+        return;
+      }
+    } catch {}
+
+    startConversation();
+  }
+
+  init();
+</script>
+</body>
+</html>
