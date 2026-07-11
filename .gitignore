@@ -1,0 +1,28 @@
+# Dependencies
+node_modules/
+.npm/
+
+# Wrangler
+.wrangler/
+worker/.wrangler/
+
+# Environment
+.env
+.env.local
+.dev.vars
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+wrangler-*.log
+
+# Build output
+dist/
+.output/
+
+# Python
+__pycache__/
+*.pyc

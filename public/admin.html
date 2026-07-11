@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Drinking Buddy — Admin</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    :root{
+      --bg:#060402;--card:#0e0a06;--card2:#130e07;--border:#2a1f10;
+      --accent:#f59e0b;--text:#f0e8d8;--muted:#7a6040;--dim:#3a2d1a;
+      --green:#22c55e;--blue:#3b82f6;--red:#ef4444;
+    }
+    body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;padding:0}
+
+    /* ── LOCK SCREEN ─────────────────────────────────────────────────── */
+    #lock{
+      position:fixed;inset:0;background:var(--bg);z-index:999;
+      display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;
+    }
+    #lock h2{font-size:20px;font-weight:700;color:var(--text)}
+    #lock p{font-size:13px;color:var(--muted)}
+    #pin-input{
+      background:var(--card);border:1px solid var(--border);border-radius:12px;
+      padding:14px 18px;font-family:'Inter',sans-serif;font-size:18px;
+      color:var(--text);outline:none;text-align:center;letter-spacing:6px;
+      width:180px;
+    }
+    #pin-input:focus{border-color:var(--accent)}
+    #pin-btn{
+      background:var(--accent);color:#0a0705;border:none;border-radius:10px;
+      padding:12px 28px;font-family:'Inter',sans-serif;font-size:14px;font-weight:700;cursor:pointer;
+    }
+    #pin-err{font-size:12px;color:var(--red);display:none}
+
+    /* ── LAYOUT ──────────────────────────────────────────────────────── */
+    #app{display:none}
+    header{
+      border-bottom:1px solid var(--border);padding:20px 32px;
+      display:flex;align-items:center;justify-content:space-between;
+      position:sticky;top:0;background:rgba(6,4,2,0.97);backdrop-filter:blur(12px);z-index:10;
+    }
+    .header-brand{display:flex;align-items:center;gap:10px;font-size:17px;font-weight:700}
+    .header-brand span{color:var(--accent)}
+    .live-pill{
+      display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:var(--green);
+      background:rgba(34,197,94,0.08);border:1px solid rgba(34,197,94,0.2);
+      border-radius:50px;padding:5px 12px;
+    }
+    .live-dot{width:6px;height:6px;border-radius:50%;background:var(--green);animation:blink 1.5s ease-in-out infinite}
+    @keyframes blink{0%,100%{opacity:1}50%{opacity:0.3}}
+
+    main{padding:32px;max-width:1100px;margin:0 auto}
+
+    /* ── STAT CARDS ──────────────────────────────────────────────────── */
+    .stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:16px;margin-bottom:32px}
+    .stat-card{
+      background:var(--card);border:1px solid var(--border);border-radius:16px;
+      padding:20px 24px;position:relative;overflow:hidden;transition:border-color 0.2s;
+    }
+    .stat-card:hover{border-color:rgba(245,158,11,0.3)}
+    .stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(245,158,11,0.15),transparent)}
+    .stat-label{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:10px}
+    .stat-val{font-size:36px;font-weight:800;letter-spacing:-1px;color:var(--text);line-height:1;margin-bottom:6px;font-variant-numeric:tabular-nums}
+    .stat-sub{font-size:11px;color:var(--dim)}
+    .stat-icon{position:absolute;top:20px;right:20px;font-size:24px;opacity:0.4}
+
+    /* ── CHART BAR ───────────────────────────────────────────────────── */
+    .section-head{font-size:13px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:16px}
+    .two-col{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:32px}
+    @media(max-width:700px){.two-col{grid-template-columns:1fr}}
+    .panel{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:24px}
+
+    .country-row{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+    .country-flag{font-size:18px;min-width:24px}
+    .country-bar-wrap{flex:1;background:var(--border);border-radius:4px;height:6px;overflow:hidden}
+    .country-bar{height:6px;background:var(--accent);border-radius:4px;transition:width 0.6s ease}
+    .country-label{font-size:12px;color:var(--muted);min-width:24px;text-align:right}
+
+    /* ── SIGNUPS LIST ────────────────────────────────────────────────── */
+    .signups-panel{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:24px;margin-bottom:32px}
+    .signup-row{
+      display:flex;align-items:center;justify-content:space-between;
+      padding:10px 0;border-bottom:1px solid var(--border);font-size:13px;
+    }
+    .signup-row:last-child{border-bottom:none}
+    .signup-email{color:var(--accent);font-weight:500}
+    .signup-meta{color:var(--dim);font-size:11px;display:flex;gap:12px}
+    .signup-time{color:var(--dim)}
+
+    /* ── COMMENTS LIST ───────────────────────────────────────────────── */
+    .comments-panel{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:24px;margin-bottom:32px}
+    .admin-comment{padding:12px 0;border-bottom:1px solid var(--border)}
+    .admin-comment:last-child{border-bottom:none}
+    .ac-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+    .ac-author{font-size:13px;font-weight:600;color:var(--accent);display:flex;align-items:center;gap:6px}
+    .ac-time{font-size:11px;color:var(--dim)}
+    .ac-body{font-size:13px;color:var(--muted);line-height:1.5}
+    .ac-likes{font-size:11px;color:var(--dim);margin-top:4px}
+
+    /* ── REFRESH ─────────────────────────────────────────────────────── */
+    .refresh-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px}
+    .last-updated{font-size:12px;color:var(--dim)}
+    .refresh-btn{
+      background:var(--card2);border:1px solid var(--border);border-radius:8px;
+      padding:7px 14px;font-family:'Inter',sans-serif;font-size:12px;font-weight:600;
+      color:var(--muted);cursor:pointer;transition:all 0.2s;
+    }
+    .refresh-btn:hover{border-color:var(--accent);color:var(--accent)}
+
+    .empty{font-size:13px;color:var(--dim);text-align:center;padding:24px}
+
+    /* ── EXPORT BTN ──────────────────────────────────────────────────── */
+    .export-btn{
+      background:transparent;border:1px solid var(--border);border-radius:8px;
+      padding:7px 14px;font-family:'Inter',sans-serif;font-size:12px;color:var(--muted);
+      cursor:pointer;transition:all 0.2s;
+    }
+    .export-btn:hover{border-color:var(--accent);color:var(--accent)}
+  </style>
+</head>
+<body>
+
+<!-- LOCK SCREEN -->
+<div id="lock">
+  <div style="font-size:32px">🔒</div>
+  <h2>Admin Access</h2>
+  <p>Enter PIN to continue</p>
+  <input id="pin-input" type="password" maxlength="6" placeholder="• • • • • •"
+    onkeydown="if(event.key==='Enter') checkPin()" autofocus />
+  <button id="pin-btn" onclick="checkPin()">Unlock</button>
+  <div id="pin-err">Wrong PIN. Try again.</div>
+</div>
+
+<!-- ADMIN APP -->
+<div id="app">
+  <header>
+    <div class="header-brand">🍺 Drinking<span>Buddy</span> <span style="color:var(--muted);font-weight:400;font-size:13px">/ Admin</span></div>
+    <div class="live-pill"><div class="live-dot"></div> Live · refreshes every 15s</div>
+  </header>
+
+  <main>
+    <div class="refresh-row">
+      <div class="last-updated">Last updated: <span id="last-updated">—</span></div>
+      <div style="display:flex;gap:8px">
+        <button class="export-btn" onclick="exportCSV()">⬇ Export signups CSV</button>
+        <button class="refresh-btn" onclick="loadAll()">↻ Refresh now</button>
+      </div>
+    </div>
+
+    <!-- STAT CARDS -->
+    <div class="stat-grid">
+      <div class="stat-card">
+        <div class="stat-icon">👀</div>
+        <div class="stat-label">Page Views</div>
+        <div class="stat-val" id="d-views">—</div>
+        <div class="stat-sub">All time impressions</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">🧑</div>
+        <div class="stat-label">Unique Visitors</div>
+        <div class="stat-val" id="d-visitors">—</div>
+        <div class="stat-sub">Deduped by IP / 24h</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">✉️</div>
+        <div class="stat-label">Signups</div>
+        <div class="stat-val" id="d-signups">—</div>
+        <div class="stat-sub">Waitlist emails</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">▶️</div>
+        <div class="stat-label">Video Plays</div>
+        <div class="stat-val" id="d-plays">—</div>
+        <div class="stat-sub">Demo video starts</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">💬</div>
+        <div class="stat-label">Comments</div>
+        <div class="stat-val" id="d-comments">—</div>
+        <div class="stat-sub">Public comments</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">📊</div>
+        <div class="stat-label">Conv. Rate</div>
+        <div class="stat-val" id="d-conv">—</div>
+        <div class="stat-sub">Visitors → signups</div>
+      </div>
+    </div>
+
+    <!-- COUNTRIES + ENGAGEMENT -->
+    <div class="two-col">
+      <div class="panel">
+        <div class="section-head">Top Countries</div>
+        <div id="countries-list"><div class="empty">No data yet</div></div>
+      </div>
+      <div class="panel">
+        <div class="section-head">Engagement</div>
+        <div id="engagement-list">
+          <div class="country-row">
+            <span style="font-size:13px;color:var(--muted);min-width:100px">Video play rate</span>
+            <div class="country-bar-wrap"><div class="country-bar" id="bar-video" style="width:0%"></div></div>
+            <span class="country-label" id="pct-video">—</span>
+          </div>
+          <div style="margin-top:16px" class="country-row">
+            <span style="font-size:13px;color:var(--muted);min-width:100px">Signup rate</span>
+            <div class="country-bar-wrap"><div class="country-bar" id="bar-signup" style="width:0%"></div></div>
+            <span class="country-label" id="pct-signup">—</span>
+          </div>
+          <div style="margin-top:16px" class="country-row">
+            <span style="font-size:13px;color:var(--muted);min-width:100px">Comment rate</span>
+            <div class="country-bar-wrap"><div class="country-bar" id="bar-comment" style="width:0%"></div></div>
+            <span class="country-label" id="pct-comment">—</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SIGNUPS LIST -->
+    <div class="signups-panel">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+        <div class="section-head" style="margin-bottom:0">Recent Signups</div>
+      </div>
+      <div id="signups-list"><div class="empty">No signups yet</div></div>
+    </div>
+
+    <!-- COMMENTS LIST -->
+    <div class="comments-panel">
+      <div class="section-head">All Comments</div>
+      <div id="comments-list"><div class="empty">No comments yet</div></div>
+    </div>
+  </main>
+</div>
+
+<script>
+  const API = 'https://drinking-buddy-api.drinkingbuddy.workers.dev';
+  const PIN = '1234'; // change this to whatever you want
+
+  // ── lock ──────────────────────────────────────────────────────────────
+  function checkPin() {
+    const val = document.getElementById('pin-input').value;
+    if (val === PIN) {
+      document.getElementById('lock').style.display = 'none';
+      document.getElementById('app').style.display = 'block';
+      loadAll();
+    } else {
+      document.getElementById('pin-err').style.display = 'block';
+      document.getElementById('pin-input').value = '';
+      document.getElementById('pin-input').focus();
+    }
+  }
+
+  // ── helpers ───────────────────────────────────────────────────────────
+  function fmt(n) { return n >= 1000 ? (n/1000).toFixed(1)+'k' : String(n||0); }
+  function pct(a, b) { return b ? Math.round((a/b)*100)+'%' : '0%'; }
+  function timeAgo(iso) {
+    const s = Math.floor((Date.now() - new Date(iso)) / 1000);
+    if (s < 60)   return 'just now';
+    if (s < 3600) return Math.floor(s/60)+'m ago';
+    if (s < 86400)return Math.floor(s/3600)+'h ago';
+    return new Date(iso).toLocaleDateString();
+  }
+  function flagFor(c) {
+    if (!c || c==='??') return '🌍';
+    try { return c.toUpperCase().replace(/./g, ch => String.fromCodePoint(0x1F1E6-65+ch.charCodeAt(0))); }
+    catch { return '🌍'; }
+  }
+
+  // ── load stats ────────────────────────────────────────────────────────
+  async function loadStats() {
+    const d = await fetch(`${API}/api/stats`).then(r=>r.json());
+
+    document.getElementById('d-views').textContent    = fmt(d.views);
+    document.getElementById('d-visitors').textContent = fmt(d.visitors);
+    document.getElementById('d-signups').textContent  = fmt(d.signups);
+    document.getElementById('d-plays').textContent    = fmt(d.videoPlays);
+    document.getElementById('d-comments').textContent = fmt(d.comments);
+
+    const conv = d.visitors ? Math.round((d.signups/d.visitors)*100) : 0;
+    document.getElementById('d-conv').textContent = conv+'%';
+
+    // engagement bars
+    const vp = d.visitors || 1;
+    const vpPct = Math.min(100, Math.round((d.videoPlays/vp)*100));
+    const spPct = Math.min(100, Math.round((d.signups/vp)*100));
+    const cpPct = Math.min(100, Math.round((d.comments/vp)*100));
+    document.getElementById('bar-video').style.width  = vpPct+'%';
+    document.getElementById('bar-signup').style.width = spPct+'%';
+    document.getElementById('bar-comment').style.width= cpPct+'%';
+    document.getElementById('pct-video').textContent  = vpPct+'%';
+    document.getElementById('pct-signup').textContent = spPct+'%';
+    document.getElementById('pct-comment').textContent= cpPct+'%';
+
+    // countries
+    const maxC = d.countries?.[0]?.count || 1;
+    document.getElementById('countries-list').innerHTML = d.countries?.length
+      ? d.countries.map(c => `
+          <div class="country-row">
+            <span class="country-flag">${flagFor(c.country)}</span>
+            <div class="country-bar-wrap">
+              <div class="country-bar" style="width:${Math.round((c.count/maxC)*100)}%"></div>
+            </div>
+            <span class="country-label">${c.count}</span>
+          </div>`).join('')
+      : '<div class="empty">No visitor data yet</div>';
+
+    return d;
+  }
+
+  // ── load signups ──────────────────────────────────────────────────────
+  async function loadSignups() {
+    try {
+      const { keys } = await fetch(`${API}/api/waitlist/list`).then(r=>r.json()).catch(()=>({keys:[]}));
+      // fallback: use count endpoint + show placeholder rows
+      const { count } = await fetch(`${API}/api/waitlist/count`).then(r=>r.json());
+      if (!count) { document.getElementById('signups-list').innerHTML = '<div class="empty">No signups yet</div>'; return; }
+      if (!keys?.length) {
+        document.getElementById('signups-list').innerHTML =
+          `<div class="signup-row"><div style="font-size:13px;color:var(--muted)">${count} email${count!==1?'s':''} collected. Export CSV to view all.</div></div>`;
+        return;
+      }
+      document.getElementById('signups-list').innerHTML = keys.map(k => `
+        <div class="signup-row">
+          <div>
+            <div class="signup-email">${k.email || k.name?.replace('waitlist:','')}</div>
+            <div class="signup-meta">
+              <span>${flagFor(k.country)} ${k.country||'?'}</span>
+              <span>${k.signedUpAt ? timeAgo(k.signedUpAt) : ''}</span>
+            </div>
+          </div>
+          <div class="signup-time">${k.signedUpAt ? new Date(k.signedUpAt).toLocaleString() : ''}</div>
+        </div>`).join('');
+    } catch { /* silent */ }
+  }
+
+  // ── load comments ─────────────────────────────────────────────────────
+  async function loadComments() {
+    const { comments } = await fetch(`${API}/api/comments`).then(r=>r.json());
+    document.getElementById('comments-list').innerHTML = comments?.length
+      ? comments.map(c => `
+          <div class="admin-comment">
+            <div class="ac-head">
+              <div class="ac-author">${flagFor(c.country)} ${c.name}</div>
+              <div class="ac-time">${timeAgo(c.ts)}</div>
+            </div>
+            <div class="ac-body">${c.message.replace(/</g,'&lt;')}</div>
+            <div class="ac-likes">🍺 ${c.likes||0} likes · ${c.country||'?'} · ${new Date(c.ts).toLocaleString()}</div>
+          </div>`).join('')
+      : '<div class="empty">No comments yet</div>';
+  }
+
+  // ── export CSV ────────────────────────────────────────────────────────
+  async function exportCSV() {
+    const { comments } = await fetch(`${API}/api/comments`).then(r=>r.json()).catch(()=>({comments:[]}));
+    const { count } = await fetch(`${API}/api/waitlist/count`).then(r=>r.json()).catch(()=>({count:0}));
+    const rows = [['type','value','country','timestamp']];
+    // we can only export comments since KV list values need a dedicated endpoint
+    comments?.forEach(c => rows.push(['comment', c.name+': '+c.message, c.country, c.ts]));
+    const csv = rows.map(r => r.map(v => `"${v}"`).join(',')).join('\n');
+    const blob = new Blob([csv], {type:'text/csv'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `drinkingbuddy-export-${new Date().toISOString().slice(0,10)}.csv`;
+    a.click();
+  }
+
+  // ── load all + schedule ───────────────────────────────────────────────
+  async function loadAll() {
+    try {
+      await Promise.all([loadStats(), loadSignups(), loadComments()]);
+      document.getElementById('last-updated').textContent = new Date().toLocaleTimeString();
+    } catch(e) { console.error(e); }
+  }
+
+  setInterval(loadAll, 15000);
+</script>
+</body>
+</html>

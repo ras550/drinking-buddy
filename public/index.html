@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Drinking Buddy — Talk to your friend, tonight.</title>
+  <meta name="description" content="Describe a friend. Share a link. They click it and a voice that sounds just like them is already talking. No signup. No waiting." />
+  <meta property="og:title" content="Drinking Buddy — Talk to your friend, tonight." />
+  <meta property="og:description" content="Describe a friend. Share a link. They click it and a voice that sounds just like them is already talking." />
+  <meta property="og:image" content="/screen2.png" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg:     #060402; --card:   #0e0a06; --border: #2a1f10;
+      --accent: #f59e0b; --accent2:#fbbf24; --text:   #f0e8d8;
+      --muted:  #7a6040; --dim:    #3a2d1a;
+    }
+    html { scroll-behavior: smooth; }
+    body { font-family:'Inter',sans-serif; background:var(--bg); color:var(--text); overflow-x:hidden; }
+    body::before {
+      content:''; position:fixed; inset:0; pointer-events:none; z-index:0;
+      background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+    }
+
+    /* ── LIVE STATS BAR ──────────────────────────────────────────────── */
+    .stats-bar {
+      position:fixed; top:0; left:0; right:0; z-index:200;
+      background:rgba(6,4,2,0.97); border-bottom:1px solid var(--border);
+      padding:8px 24px;
+      display:flex; align-items:center; justify-content:center; gap:24px;
+      font-size:12px; font-weight:500; color:var(--muted);
+      backdrop-filter:blur(12px);
+    }
+    .stats-bar .stat { display:flex; align-items:center; gap:6px; }
+    .stats-bar .stat-val { color:var(--accent); font-weight:700; font-variant-numeric:tabular-nums; }
+    .stats-bar .live-dot {
+      width:6px; height:6px; border-radius:50%; background:#22c55e;
+      animation:blink 1.5s ease-in-out infinite;
+    }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+    /* ── NAV ─────────────────────────────────────────────────────────── */
+    nav {
+      position:fixed; top:33px; left:0; right:0; z-index:100;
+      padding:16px 40px;
+      display:flex; align-items:center; justify-content:space-between;
+      background:linear-gradient(to bottom,rgba(6,4,2,0.95),transparent);
+      backdrop-filter:blur(8px);
+    }
+    .nav-brand { display:flex; align-items:center; gap:10px; text-decoration:none; color:var(--text); }
+    .nav-brand-icon { font-size:22px; }
+    .nav-brand-name { font-size:17px; font-weight:700; letter-spacing:-0.3px; }
+    .nav-brand-name span { color:var(--accent); }
+    .nav-cta {
+      background:var(--accent); color:#0a0705; border:none; border-radius:50px;
+      padding:10px 22px; font-family:'Inter',sans-serif; font-size:13px; font-weight:700;
+      cursor:pointer; text-decoration:none; transition:background 0.2s,transform 0.2s;
+    }
+    .nav-cta:hover { background:var(--accent2); transform:translateY(-1px); }
+
+    /* ── HERO ────────────────────────────────────────────────────────── */
+    .hero {
+      min-height:100vh; display:flex; flex-direction:column;
+      align-items:center; justify-content:center; text-align:center;
+      padding:160px 24px 80px; position:relative;
+    }
+    .hero::before {
+      content:''; position:absolute; top:0; left:50%; transform:translateX(-50%);
+      width:800px; height:500px;
+      background:radial-gradient(ellipse,rgba(245,158,11,0.1) 0%,transparent 65%);
+      pointer-events:none;
+    }
+    .hero-badge {
+      display:inline-flex; align-items:center; gap:8px;
+      background:rgba(245,158,11,0.08); border:1px solid rgba(245,158,11,0.2);
+      border-radius:50px; padding:7px 16px; font-size:12px; font-weight:600;
+      color:var(--accent); letter-spacing:0.3px; margin-bottom:28px;
+    }
+    .hero-badge-dot { width:6px; height:6px; border-radius:50%; background:var(--accent); animation:blink 1.5s ease-in-out infinite; }
+    .hero h1 { font-size:clamp(40px,7vw,80px); font-weight:900; letter-spacing:-2px; line-height:1; margin-bottom:24px; max-width:800px; }
+    .hero h1 .accent { color:var(--accent); }
+    .hero-sub { font-size:clamp(16px,2.5vw,20px); color:var(--muted); max-width:520px; line-height:1.6; margin-bottom:48px; }
+    .hero-avatar {
+      width:96px; height:96px; border-radius:50%;
+      border:3px solid rgba(245,158,11,0.4); overflow:hidden; margin:0 auto 32px;
+      box-shadow:0 0 40px rgba(245,158,11,0.2),0 0 80px rgba(245,158,11,0.08);
+      animation:float 4s ease-in-out infinite;
+    }
+    .hero-avatar img { width:100%; height:100%; object-fit:cover; }
+    @keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)} }
+
+    /* ── SIGNUP ──────────────────────────────────────────────────────── */
+    .signup-form { display:flex; gap:10px; max-width:440px; width:100%; margin:0 auto 16px; }
+    .signup-input {
+      flex:1; background:var(--card); border:1px solid var(--border); border-radius:12px;
+      padding:15px 18px; font-family:'Inter',sans-serif; font-size:15px; color:var(--text);
+      outline:none; transition:border-color 0.2s,box-shadow 0.2s;
+    }
+    .signup-input::placeholder { color:var(--dim); }
+    .signup-input:focus { border-color:var(--accent); box-shadow:0 0 0 3px rgba(245,158,11,0.1); }
+    .signup-btn {
+      background:var(--accent); color:#0a0705; border:none; border-radius:12px;
+      padding:15px 24px; font-family:'Inter',sans-serif; font-size:15px; font-weight:700;
+      cursor:pointer; white-space:nowrap; transition:background 0.2s,transform 0.15s,box-shadow 0.2s;
+    }
+    .signup-btn:hover { background:var(--accent2); transform:translateY(-1px); box-shadow:0 8px 24px rgba(245,158,11,0.25); }
+    .signup-btn:active { transform:translateY(0); }
+    .signup-count { font-size:13px; color:var(--dim); text-align:center; margin-bottom:6px; }
+    .signup-count span { color:var(--accent); font-weight:700; }
+    .success-msg { display:none; font-size:14px; color:#4ade80; font-weight:500; margin-top:8px; text-align:center; }
+
+    /* ── DIVIDER ─────────────────────────────────────────────────────── */
+    .divider { height:1px; background:linear-gradient(90deg,transparent,var(--border),transparent); max-width:860px; width:100%; margin:0 auto; }
+
+    /* ── SECTION CHROME ──────────────────────────────────────────────── */
+    .section-label { font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:1.5px; color:var(--accent); margin-bottom:16px; }
+    .section-title { font-size:clamp(28px,4vw,40px); font-weight:800; letter-spacing:-1px; text-align:center; margin-bottom:48px; max-width:600px; }
+
+    /* ── VIDEO ───────────────────────────────────────────────────────── */
+    .video-section { padding:80px 24px; display:flex; flex-direction:column; align-items:center; }
+    .video-wrap {
+      width:100%; max-width:800px; border-radius:20px; overflow:hidden;
+      border:1px solid var(--border);
+      box-shadow:0 0 80px rgba(0,0,0,0.8),0 0 40px rgba(245,158,11,0.05);
+    }
+    .video-wrap video { width:100%; display:block; }
+
+    /* ── HOW IT WORKS ────────────────────────────────────────────────── */
+    .how-section { padding:80px 24px; display:flex; flex-direction:column; align-items:center; }
+    .steps { display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:20px; max-width:860px; width:100%; }
+    .step-card {
+      background:var(--card); border:1px solid var(--border); border-radius:20px;
+      padding:32px 28px; position:relative; overflow:hidden; transition:border-color 0.2s,transform 0.2s;
+    }
+    .step-card:hover { border-color:rgba(245,158,11,0.3); transform:translateY(-2px); }
+    .step-card::before { content:''; position:absolute; top:0; left:0; right:0; height:1px; background:linear-gradient(90deg,transparent,rgba(245,158,11,0.2),transparent); }
+    .step-num { font-size:11px; font-weight:700; color:var(--accent); letter-spacing:1px; text-transform:uppercase; margin-bottom:16px; }
+    .step-icon { font-size:32px; margin-bottom:16px; display:block; }
+    .step-title { font-size:18px; font-weight:700; letter-spacing:-0.3px; margin-bottom:10px; }
+    .step-desc { font-size:14px; color:var(--muted); line-height:1.7; }
+
+    /* ── SCREENSHOTS ─────────────────────────────────────────────────── */
+    .screens-section { padding:80px 24px; display:flex; flex-direction:column; align-items:center; overflow:hidden; }
+    .screens-scroll { display:flex; gap:20px; max-width:1000px; width:100%; overflow-x:auto; padding-bottom:12px; scrollbar-width:none; }
+    .screens-scroll::-webkit-scrollbar { display:none; }
+    .screen-item { flex:0 0 320px; border-radius:16px; overflow:hidden; border:1px solid var(--border); box-shadow:0 8px 40px rgba(0,0,0,0.5); transition:transform 0.3s,box-shadow 0.3s; }
+    .screen-item:hover { transform:translateY(-4px) scale(1.01); box-shadow:0 16px 60px rgba(0,0,0,0.6),0 0 20px rgba(245,158,11,0.08); }
+    .screen-item img { width:100%; display:block; }
+    .screen-caption { background:var(--card); padding:12px 16px; font-size:12px; color:var(--muted); font-weight:500; }
+
+    /* ── COMMENTS ────────────────────────────────────────────────────── */
+    .comments-section { padding:80px 24px; display:flex; flex-direction:column; align-items:center; }
+    .comment-form {
+      width:100%; max-width:600px; margin-bottom:40px;
+      background:var(--card); border:1px solid var(--border); border-radius:20px; padding:24px;
+    }
+    .comment-form-row { display:flex; gap:10px; margin-bottom:12px; }
+    .comment-name {
+      width:160px; background:var(--bg); border:1px solid var(--border); border-radius:10px;
+      padding:11px 14px; font-family:'Inter',sans-serif; font-size:14px; color:var(--text); outline:none;
+    }
+    .comment-name::placeholder { color:var(--dim); }
+    .comment-name:focus { border-color:var(--accent); }
+    .comment-textarea {
+      flex:1; background:var(--bg); border:1px solid var(--border); border-radius:10px;
+      padding:11px 14px; font-family:'Inter',sans-serif; font-size:14px; color:var(--text);
+      outline:none; resize:none; height:80px; line-height:1.5;
+    }
+    .comment-textarea::placeholder { color:var(--dim); }
+    .comment-textarea:focus { border-color:var(--accent); }
+    .comment-submit {
+      background:var(--accent); color:#0a0705; border:none; border-radius:10px;
+      padding:11px 20px; font-family:'Inter',sans-serif; font-size:14px; font-weight:700;
+      cursor:pointer; transition:background 0.2s; white-space:nowrap; align-self:flex-end;
+    }
+    .comment-submit:hover { background:var(--accent2); }
+
+    .comments-list { width:100%; max-width:600px; display:flex; flex-direction:column; gap:14px; }
+    .comment-card {
+      background:var(--card); border:1px solid var(--border); border-radius:16px;
+      padding:18px 20px; animation:fadeUp 0.3s ease-out both;
+    }
+    @keyframes fadeUp { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+    .comment-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
+    .comment-author { font-size:13px; font-weight:700; color:var(--accent); display:flex; align-items:center; gap:6px; }
+    .comment-flag { font-size:14px; }
+    .comment-time { font-size:11px; color:var(--dim); }
+    .comment-body { font-size:14px; color:var(--muted); line-height:1.6; }
+    .comment-footer { display:flex; align-items:center; gap:12px; margin-top:12px; }
+    .like-btn {
+      background:none; border:1px solid var(--border); border-radius:50px;
+      padding:4px 12px; font-size:12px; color:var(--dim); cursor:pointer;
+      font-family:'Inter',sans-serif; transition:all 0.2s; display:flex; align-items:center; gap:5px;
+    }
+    .like-btn:hover { border-color:var(--accent); color:var(--accent); }
+    .like-btn.liked { border-color:var(--accent); color:var(--accent); background:rgba(245,158,11,0.06); }
+    .comments-empty { font-size:14px; color:var(--dim); text-align:center; padding:32px; }
+
+    /* ── BOTTOM CTA ──────────────────────────────────────────────────── */
+    .bottom-cta { padding:100px 24px; display:flex; flex-direction:column; align-items:center; text-align:center; position:relative; }
+    .bottom-cta::before { content:''; position:absolute; bottom:0; left:50%; transform:translateX(-50%); width:600px; height:300px; background:radial-gradient(ellipse,rgba(245,158,11,0.07) 0%,transparent 70%); pointer-events:none; }
+    .bottom-cta h2 { font-size:clamp(32px,5vw,56px); font-weight:900; letter-spacing:-1.5px; margin-bottom:16px; max-width:600px; }
+    .bottom-cta p { font-size:17px; color:var(--muted); margin-bottom:40px; max-width:400px; line-height:1.6; }
+
+    /* ── FOOTER ──────────────────────────────────────────────────────── */
+    footer { border-top:1px solid var(--border); padding:32px 40px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:16px; }
+    .footer-brand { font-size:13px; color:var(--dim); }
+    .footer-brand span { color:var(--accent); }
+    .footer-right { font-size:12px; color:var(--dim); }
+
+    @media(max-width:600px) {
+      nav { padding:16px 20px; }
+      .signup-form,.comment-form-row { flex-direction:column; }
+      .signup-btn,.comment-name { width:100%; }
+      .stats-bar { gap:12px; font-size:11px; }
+      footer { flex-direction:column; align-items:flex-start; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- LIVE STATS BAR -->
+  <div class="stats-bar">
+    <div class="stat"><div class="live-dot"></div> Live</div>
+    <div class="stat">👀 <span class="stat-val" id="s-views">—</span> views</div>
+    <div class="stat">🧑 <span class="stat-val" id="s-visitors">—</span> visitors</div>
+    <div class="stat">✉️ <span class="stat-val" id="s-signups">—</span> signups</div>
+    <div class="stat">💬 <span class="stat-val" id="s-comments">—</span> comments</div>
+    <div class="stat">▶️ <span class="stat-val" id="s-plays">—</span> plays</div>
+  </div>
+
+  <!-- NAV -->
+  <nav>
+    <a class="nav-brand" href="#">
+      <span class="nav-brand-icon">🍺</span>
+      <span class="nav-brand-name">Drinking<span>Buddy</span></span>
+    </a>
+    <a class="nav-cta" href="#signup">Get early access</a>
+  </nav>
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="hero-badge">
+      <div class="hero-badge-dot"></div>
+      Built at the World's Largest Hermes Buildathon · SF 2026
+    </div>
+    <div class="hero-avatar"><img src="marcus.png" alt="Marcus" /></div>
+    <h1>Your friend.<br/>On the <span class="accent">other end.</span></h1>
+    <p class="hero-sub">Describe a friend. Share a link. They click it and a voice that sounds and acts just like them is already talking. Real-time. Interruptable. No signup.</p>
+
+    <div id="signup">
+      <form class="signup-form" onsubmit="handleSignup(event)">
+        <input class="signup-input" type="email" id="email-input" placeholder="your@email.com" required />
+        <button class="signup-btn" type="submit">Get early access</button>
+      </form>
+      <div class="signup-count">Join <span class="live-count">—</span> people on the waitlist</div>
+      <div class="success-msg" id="success-msg">✓ You're on the list! We'll let you know when it's ready. 🍺</div>
+    </div>
+  </section>
+
+  <div class="divider"></div>
+
+  <!-- VIDEO -->
+  <section class="video-section">
+    <div class="section-label">Watch the demo</div>
+    <h2 class="section-title">60 seconds. Then you'll get it.</h2>
+    <div class="video-wrap">
+      <video id="demo-video" controls muted loop playsinline poster="screen2.png">
+        <source src="demo.mp4" type="video/mp4" />
+      </video>
+    </div>
+  </section>
+
+  <div class="divider"></div>
+
+  <!-- HOW IT WORKS -->
+  <section class="how-section">
+    <div class="section-label">How it works</div>
+    <h2 class="section-title" style="margin-bottom:48px">Three steps. Thirty seconds.</h2>
+    <div class="steps">
+      <div class="step-card">
+        <div class="step-num">Step 01</div>
+        <span class="step-icon">✍️</span>
+        <div class="step-title">Describe your friend</div>
+        <div class="step-desc">Give them a name. Write 3-5 sentences about their personality — how they talk, their stories, their vibe. The more real, the better.</div>
+      </div>
+      <div class="step-card">
+        <div class="step-num">Step 02</div>
+        <span class="step-icon">🔗</span>
+        <div class="step-title">Share the link</div>
+        <div class="step-desc">You get a unique link. Send it over WhatsApp, iMessage, anywhere. No app download. No account. Just a link.</div>
+      </div>
+      <div class="step-card">
+        <div class="step-num">Step 03</div>
+        <span class="step-icon">🍺</span>
+        <div class="step-title">They click. It talks.</div>
+        <div class="step-desc">The moment they open the link, a voice greets them. Real-time. Interruptable. It already knows them. It's already at the bar.</div>
+      </div>
+    </div>
+  </section>
+
+  <div class="divider"></div>
+
+  <!-- SCREENSHOTS -->
+  <section class="screens-section">
+    <div class="section-label">The experience</div>
+    <h2 class="section-title" style="margin-bottom:40px">Looks like this.</h2>
+    <div class="screens-scroll">
+      <div class="screen-item">
+        <img src="screen1.png" alt="Setup" loading="lazy" />
+        <div class="screen-caption">Describe your buddy in a few sentences</div>
+      </div>
+      <div class="screen-item">
+        <img src="screen2.png" alt="Session" loading="lazy" />
+        <div class="screen-caption">Real-time voice — interrupt any time</div>
+      </div>
+      <div class="screen-item">
+        <img src="screen3.png" alt="End card" loading="lazy" />
+        <div class="screen-caption">Walk away with a recap to share</div>
+      </div>
+    </div>
+  </section>
+
+  <div class="divider"></div>
+
+  <!-- COMMENTS -->
+  <section class="comments-section">
+    <div class="section-label">From the community</div>
+    <h2 class="section-title" style="margin-bottom:40px">What people are saying 🍺</h2>
+
+    <div class="comment-form">
+      <div class="comment-form-row">
+        <input class="comment-name" id="c-name" type="text" placeholder="Your name" maxlength="40" />
+        <textarea class="comment-textarea" id="c-msg" placeholder="Leave a thought, reaction, or roast... 280 chars max" maxlength="280"></textarea>
+        <button class="comment-submit" onclick="submitComment()">Post</button>
+      </div>
+    </div>
+
+    <div class="comments-list" id="comments-list">
+      <div class="comments-empty">Be the first to leave a comment 🍺</div>
+    </div>
+  </section>
+
+  <div class="divider"></div>
+
+  <!-- BOTTOM CTA -->
+  <section class="bottom-cta">
+    <h2>Ready to call<br/><span style="color:var(--accent)">your buddy?</span></h2>
+    <p>Be first when we launch. No spam — just one email when the doors open.</p>
+    <form class="signup-form" onsubmit="handleSignup(event)" style="max-width:400px">
+      <input class="signup-input" type="email" placeholder="your@email.com" required />
+      <button class="signup-btn" type="submit">Join waitlist</button>
+    </form>
+    <div class="signup-count" style="margin-top:12px">Join <span class="live-count">—</span> people waiting 🍺</div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer>
+    <div class="footer-brand">🍺 Drinking<span>Buddy</span></div>
+    <div class="footer-right">Built at Hermes Buildathon SF 2026 · Nous Research</div>
+  </footer>
+
+  <script>
+    const API = 'https://drinking-buddy-api.drinkingbuddy.workers.dev';
+    const liked = new Set(JSON.parse(localStorage.getItem('db_liked') || '[]'));
+
+    // ── track page view ─────────────────────────────────────────────────
+    fetch(`${API}/api/track`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({type:'view'}) }).catch(()=>{});
+
+    // ── track video play (once) ─────────────────────────────────────────
+    let videoTracked = false;
+    document.getElementById('demo-video').addEventListener('play', () => {
+      if (videoTracked) return;
+      videoTracked = true;
+      fetch(`${API}/api/track`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({type:'video_play'}) }).catch(()=>{});
+    });
+
+    // ── load & refresh stats every 15s ─────────────────────────────────
+    async function loadStats() {
+      try {
+        const d = await fetch(`${API}/api/stats`).then(r => r.json());
+        document.getElementById('s-views').textContent    = fmt(d.views);
+        document.getElementById('s-visitors').textContent = fmt(d.visitors);
+        document.getElementById('s-signups').textContent  = fmt(d.signups);
+        document.getElementById('s-comments').textContent = fmt(d.comments);
+        document.getElementById('s-plays').textContent    = fmt(d.videoPlays);
+        document.querySelectorAll('.live-count').forEach(el => el.textContent = fmt(d.signups));
+      } catch {}
+    }
+    function fmt(n) { return n >= 1000 ? (n/1000).toFixed(1)+'k' : String(n || 0); }
+    loadStats();
+    setInterval(loadStats, 15000);
+
+    // ── signup ──────────────────────────────────────────────────────────
+    async function handleSignup(e) {
+      e.preventDefault();
+      const form = e.target;
+      const email = form.querySelector('input[type="email"]').value;
+      const btn   = form.querySelector('button');
+      btn.textContent = 'Adding you...';
+      btn.disabled = true;
+      try {
+        const res = await fetch(`${API}/api/waitlist`, {
+          method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({email})
+        });
+        const d = await res.json();
+        btn.textContent = '✓ You\'re in!';
+        btn.style.background = '#16a34a';
+        form.querySelector('input').value = '';
+        const msg = document.getElementById('success-msg');
+        if (msg) msg.style.display = 'block';
+        document.querySelectorAll('.live-count').forEach(el => el.textContent = fmt(d.total || 0));
+        document.getElementById('s-signups').textContent = fmt(d.total || 0);
+      } catch {
+        btn.textContent = '✓ You\'re in!';
+        btn.style.background = '#16a34a';
+        form.querySelector('input').value = '';
+      }
+    }
+
+    // ── comments ────────────────────────────────────────────────────────
+    function flagFor(country) {
+      if (!country || country === '??') return '';
+      try {
+        return country.toUpperCase().replace(/./g, c =>
+          String.fromCodePoint(0x1F1E6 - 65 + c.charCodeAt(0))
+        );
+      } catch { return ''; }
+    }
+
+    function timeAgo(iso) {
+      const s = Math.floor((Date.now() - new Date(iso)) / 1000);
+      if (s < 60)  return 'just now';
+      if (s < 3600) return Math.floor(s/60) + 'm ago';
+      if (s < 86400) return Math.floor(s/3600) + 'h ago';
+      return Math.floor(s/86400) + 'd ago';
+    }
+
+    function renderComment(c) {
+      const isLiked = liked.has(c.id);
+      return `
+        <div class="comment-card" id="${c.id}">
+          <div class="comment-header">
+            <div class="comment-author">
+              <span class="comment-flag">${flagFor(c.country)}</span>
+              ${c.name}
+            </div>
+            <div class="comment-time">${timeAgo(c.ts)}</div>
+          </div>
+          <div class="comment-body">${c.message.replace(/</g,'&lt;')}</div>
+          <div class="comment-footer">
+            <button class="like-btn ${isLiked?'liked':''}" onclick="likeComment('${c.id}',this)">
+              🍺 ${c.likes || 0}
+            </button>
+          </div>
+        </div>`;
+    }
+
+    async function loadComments() {
+      try {
+        const { comments } = await fetch(`${API}/api/comments`).then(r => r.json());
+        const list = document.getElementById('comments-list');
+        if (!comments.length) {
+          list.innerHTML = '<div class="comments-empty">Be the first to leave a comment 🍺</div>';
+          return;
+        }
+        list.innerHTML = comments.map(renderComment).join('');
+      } catch {}
+    }
+    loadComments();
+
+    async function submitComment() {
+      const name = document.getElementById('c-name').value.trim() || 'Anonymous';
+      const message = document.getElementById('c-msg').value.trim();
+      if (!message) return;
+      const btn = document.querySelector('.comment-submit');
+      btn.textContent = 'Posting...'; btn.disabled = true;
+      try {
+        const { comment } = await fetch(`${API}/api/comments`, {
+          method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({name,message})
+        }).then(r => r.json());
+        document.getElementById('c-msg').value = '';
+        const list = document.getElementById('comments-list');
+        const empty = list.querySelector('.comments-empty');
+        if (empty) empty.remove();
+        list.insertAdjacentHTML('afterbegin', renderComment(comment));
+        const count = parseInt(document.getElementById('s-comments').textContent) || 0;
+        document.getElementById('s-comments').textContent = fmt(count + 1);
+      } catch {}
+      btn.textContent = 'Post'; btn.disabled = false;
+    }
+
+    async function likeComment(id, btn) {
+      if (liked.has(id)) return;
+      liked.add(id);
+      localStorage.setItem('db_liked', JSON.stringify([...liked]));
+      btn.classList.add('liked');
+      try {
+        const { likes } = await fetch(`${API}/api/comments/${id}/like`, { method:'POST' }).then(r => r.json());
+        btn.innerHTML = `🍺 ${likes}`;
+      } catch {}
+    }
+  </script>
+</body>
+</html>
