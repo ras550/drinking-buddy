@@ -139,7 +139,7 @@ export default {
 
       // Create ElevenLabs agent
       let elevenLabsAgentId = null;
-      const selectedVoiceId = voiceId || 'pNInz6obpgDQGcFmaJgB'; // Adam
+      const selectedVoiceId = voiceId || 'JBFqnCBsd6RMkjVDRZzb'; // George — Warm Storyteller
       const workerUrl = `https://drinking-buddy-api.drinkingbuddy.workers.dev`;
 
       if (env.ELEVENLABS_API_KEY) {
@@ -155,9 +155,9 @@ export default {
                   first_message: `${buddyName}! You actually showed up. Get in here — I just ordered a round. What are you drinking?`,
                   language: 'en',
                 },
-                tts: { voice_id: selectedVoiceId, model_id: 'eleven_turbo_v2_5' },
+                tts: { voice_id: selectedVoiceId, model_id: 'eleven_turbo_v2' },
                 stt: { provider: 'elevenlabs' },
-                turn: { mode: 'server_vad', server_vad_config: { silence_duration_ms: 500, threshold: 0.5 } },
+                turn: { mode: 'silence', silence_end_duration_ms: 500 },
               },
             })
           });
