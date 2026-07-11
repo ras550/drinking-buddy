@@ -137,7 +137,7 @@
 <div id="app">
   <header>
     <div class="header-brand">🍺 Drinking<span>Buddy</span> <span style="color:var(--muted);font-weight:400;font-size:13px">/ Admin</span></div>
-    <div class="live-pill"><div class="live-dot"></div> Live · refreshes every 15s</div>
+    <div class="live-pill"><div class="live-dot"></div> Live · manual refresh</div>
   </header>
 
   <main>
@@ -383,8 +383,6 @@
       document.getElementById('last-updated').style.color = 'var(--red)';
     }
   }
-
-  setInterval(loadAll, 15000);
 </script>
 </body>
 </html>
