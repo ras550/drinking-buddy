@@ -120,7 +120,7 @@ export default {
 
     // ── SESSION: CREATE ────────────────────────────────────────────────────
     if (url.pathname === '/api/session/new' && request.method === 'POST') {
-      const { buddyName, personalityDescription, voiceId } = await request.json().catch(() => ({}));
+      const { buddyName, personalityDescription, voiceId, avatarStyle = 'neutral' } = await request.json().catch(() => ({}));
       if (!buddyName || !personalityDescription) return json({ error: 'Missing fields' }, 400);
 
       const sessionId = Math.random().toString(36).slice(2, 10) + Math.random().toString(36).slice(2, 6);
@@ -207,6 +207,7 @@ export default {
         systemPrompt,
         elevenLabsAgentId,
         voiceId: selectedVoiceId,
+        avatarStyle: ['masculine', 'feminine', 'neutral'].includes(avatarStyle) ? avatarStyle : 'neutral',
         avatarUrl,
         transcript: [],
         status: 'active',

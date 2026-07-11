@@ -26,6 +26,14 @@
     input:focus,textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(245,158,11,0.08)}
     textarea{resize:none;height:110px;line-height:1.6}
 
+    .avatar-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:28px}
+    .avatar-opt{background:#0d0a06;border:1.5px solid var(--border);border-radius:14px;padding:10px 8px;cursor:pointer;transition:all .2s;text-align:center;color:var(--muted);font-family:'Inter',sans-serif}
+    .avatar-opt:hover{border-color:#4a3020;color:var(--text)}
+    .avatar-opt.selected{border-color:var(--accent);background:rgba(245,158,11,.06);color:var(--text)}
+    .avatar-opt img{width:72px;height:72px;border-radius:50%;display:block;margin:0 auto 7px}
+    .avatar-opt span{font-size:12px;font-weight:700}
+    .avatar-hint{font-size:11px;color:var(--dim);margin-top:-18px;margin-bottom:22px}
+
     .divider{height:1px;background:var(--border);margin:4px 0 28px}
 
     .voice-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:32px}
@@ -71,6 +79,14 @@
 
   <label for="personality">What are they like?</label>
   <textarea id="personality" placeholder="Marcus is loud, overly confident, always has a ridiculous story that never happened. Terrible life advice. Heart of gold. Reminds you of a college rugby guy who somehow ended up in finance..."></textarea>
+
+  <label>Choose their look</label>
+  <div class="avatar-grid">
+    <button class="avatar-opt" type="button" data-avatar="masculine" onclick="selectAvatar(this)"><img src="/avatar-masculine.svg" alt="Masculine animated avatar"><span>Masculine</span></button>
+    <button class="avatar-opt" type="button" data-avatar="feminine" onclick="selectAvatar(this)"><img src="/avatar-feminine.svg" alt="Feminine animated avatar"><span>Feminine</span></button>
+    <button class="avatar-opt selected" type="button" data-avatar="neutral" onclick="selectAvatar(this)"><img src="/avatar-neutral.svg" alt="Neutral animated avatar"><span>Neutral</span></button>
+  </div>
+  <div class="avatar-hint" id="avatar-hint">Neutral selected · updates automatically from the name</div>
 
   <div class="divider"></div>
 
@@ -121,12 +137,34 @@
     el.classList.add('selected');
   }
 
+  const masculineNames = new Set(['aaron','adam','alexander','andrew','anthony','ben','benjamin','brian','charles','chris','christopher','daniel','david','ethan','george','henry','jack','jacob','james','jason','john','joseph','josh','kevin','liam','lucas','marcus','mark','matt','matthew','michael','nathan','nicholas','noah','oliver','peter','rahul','robert','ryan','samuel','thomas','will','william']);
+  const feminineNames = new Set(['alexandra','alice','amanda','amelia','anna','ava','bella','charlotte','chloe','danielle','emma','emily','eva','grace','hannah','isabella','jessica','julia','laura','lily','lucy','maya','mia','natalie','olivia','priya','rachel','rebecca','sarah','sophia','sophie','zoe']);
+
+  function selectAvatar(el, inferred = false) {
+    document.querySelectorAll('.avatar-opt').forEach(option => option.classList.remove('selected'));
+    el.classList.add('selected');
+    const label = el.dataset.avatar[0].toUpperCase() + el.dataset.avatar.slice(1);
+    document.getElementById('avatar-hint').textContent = `${label} selected${inferred ? ' · inferred from the name' : ''}`;
+  }
+
+  function inferAvatar(name) {
+    const first = name.trim().toLowerCase().split(/\s+/)[0].replace(/[^a-z]/g, '');
+    let style = 'neutral';
+    if (masculineNames.has(first)) style = 'masculine';
+    else if (feminineNames.has(first)) style = 'feminine';
+    const option = document.querySelector(`.avatar-opt[data-avatar="${style}"]`);
+    if (option) selectAvatar(option, true);
+  }
+
+  document.getElementById('name').addEventListener('input', event => inferAvatar(event.target.value));
+
   async function createBuddy() {
     const name = document.getElementById('name').value.trim();
     const personality = document.getElementById('personality').value.trim();
     if (!name) { document.getElementById('name').focus(); return; }
     if (!personality) { document.getElementById('personality').focus(); return; }
     const voiceId = document.querySelector('.voice-opt.selected').dataset.voice;
+    const avatarStyle = document.querySelector('.avatar-opt.selected').dataset.avatar;
 
     // Show loading immediately — full screen, no way to miss it
     document.getElementById('loading').classList.add('show');
@@ -152,7 +190,7 @@
         method: 'POST',
         signal: requestController.signal,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ buddyName: name, personalityDescription: personality, voiceId })
+        body: JSON.stringify({ buddyName: name, personalityDescription: personality, voiceId, avatarStyle })
       });
       clearTimeout(requestTimeout);
       clearInterval(interval);

@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 320" role="img" aria-labelledby="title">
+  <title id="title">Animated feminine drinking buddy</title>
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="35%" r="75%"><stop offset="0" stop-color="#744326"/><stop offset=".55" stop-color="#28150f"/><stop offset="1" stop-color="#090604"/></radialGradient>
+    <linearGradient id="skin" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#f2c49d"/><stop offset="1" stop-color="#c77e5d"/></linearGradient>
+    <linearGradient id="shirt" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#b15b55"/><stop offset="1" stop-color="#713335"/></linearGradient>
+    <filter id="soft"><feTurbulence baseFrequency=".02" numOctaves="2" seed="7" result="noise"/><feDisplacementMap in="SourceGraphic" in2="noise" scale="1.7"/><feGaussianBlur stdDeviation=".15"/></filter>
+    <filter id="glow"><feGaussianBlur stdDeviation="8"/></filter>
+  </defs>
+  <rect width="320" height="320" rx="160" fill="url(#bg)"/>
+  <g opacity=".4" filter="url(#glow)"><circle cx="61" cy="69" r="17" fill="#ffc14f"/><circle cx="265" cy="94" r="14" fill="#ec7541"/><circle cx="273" cy="48" r="7" fill="#ffe3a1"/></g>
+  <path d="M25 260 Q160 230 295 260 L320 320H0Z" fill="#1b0f09" opacity=".82"/>
+  <g filter="url(#soft)">
+    <animateTransform attributeName="transform" type="translate" values="0 2;0 -3;0 2" dur="3.2s" repeatCount="indefinite"/>
+    <path d="M88 292 Q92 217 117 198 Q160 178 204 198 Q229 219 233 292Z" fill="url(#shirt)"/>
+    <path d="M135 197 Q160 216 186 197 L178 229 Q160 219 142 229Z" fill="#f4e7d7" opacity=".9"/>
+    <rect x="146" y="174" width="29" height="39" rx="13" fill="#c37e5d"/>
+    <path d="M91 142 Q77 61 136 38 Q211 21 232 95 Q239 151 205 203 L196 155 L111 158 L119 209 Q84 177 91 142Z" fill="#493023"/>
+    <ellipse cx="160" cy="128" rx="65" ry="76" fill="url(#skin)"/>
+    <path d="M97 116 Q94 57 145 45 Q206 31 225 91 Q208 75 181 72 Q143 87 103 75Z" fill="#52372a"/>
+    <path d="M120 116 Q137 108 150 117" fill="none" stroke="#5a3428" stroke-width="5" stroke-linecap="round"/>
+    <path d="M171 117 Q185 108 201 116" fill="none" stroke="#5a3428" stroke-width="5" stroke-linecap="round"/>
+    <ellipse cx="137" cy="132" rx="8" ry="9" fill="#443028"/><ellipse cx="185" cy="132" rx="8" ry="9" fill="#443028"/>
+    <g fill="#f2c49d"><rect x="127" y="124" width="20" height="16" rx="9"><animate attributeName="height" values="16;16;1;16;16" keyTimes="0;.4;.45;.5;1" dur="4.1s" repeatCount="indefinite"/></rect><rect x="175" y="124" width="20" height="16" rx="9"><animate attributeName="height" values="16;16;1;16;16" keyTimes="0;.4;.45;.5;1" dur="4.1s" repeatCount="indefinite"/></rect></g>
+    <path d="M158 132 Q152 150 161 155" fill="none" stroke="#a96049" stroke-width="3" stroke-linecap="round"/>
+    <path d="M139 168 Q160 183 182 167" fill="none" stroke="#9e3f48" stroke-width="4" stroke-linecap="round"><animate attributeName="d" values="M139 168 Q160 183 182 167;M142 168 Q160 188 179 168;M139 168 Q160 183 182 167" dur="2.7s" repeatCount="indefinite"/></path>
+    <ellipse cx="116" cy="155" rx="13" ry="7" fill="#d87572" opacity=".25"/><ellipse cx="205" cy="155" rx="13" ry="7" fill="#d87572" opacity=".25"/>
+    <g transform="translate(213 219)"><animateTransform attributeName="transform" additive="sum" type="rotate" values="0 20 45;-8 20 45;0 20 45" dur="3.2s" repeatCount="indefinite"/><path d="M4 8 Q28 7 36 27 L45 72" fill="none" stroke="#8f4242" stroke-width="20" stroke-linecap="round"/><text x="28" y="91" font-size="44">🍷</text></g>
+  </g>
+</svg>
